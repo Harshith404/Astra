@@ -21,6 +21,12 @@ export interface GameState {
   missionTimeLeft: number;
   colonistsRescued: number;
   colonistsTotal: number;
+  dataRecovered: number;
+  dataTotal: number;
+  anomaliesInvestigated: number;
+  anomaliesTotal: number;
+  astraFound: boolean;
+  robotsRecovered: number;
   missionEnergy: number;
   maxMissionEnergy: number;
   communicationsRestored: boolean;
@@ -34,6 +40,10 @@ export interface GameState {
   updateMissionTime: (time: number) => void;
   rescueColonist: () => void;
   restoreCommunications: () => void;
+  recoverData: () => void;
+  investigateAnomaly: () => void;
+  findAstra: () => void;
+  recoverRobot: () => void;
   updateRobot: (id: string, partial: Partial<Robot>) => void;
   addRobot: (robot: Robot) => void;
   useEnergy: (amount: number) => boolean;
@@ -50,6 +60,12 @@ export const useGameStore = create<GameState>((set, get) => ({
   missionTimeLeft: 120, // seconds
   colonistsRescued: 0,
   colonistsTotal: 10,
+  dataRecovered: 0,
+  dataTotal: 0,
+  anomaliesInvestigated: 0,
+  anomaliesTotal: 0,
+  astraFound: false,
+  robotsRecovered: 0,
   missionEnergy: 85,
   maxMissionEnergy: 100,
   communicationsRestored: false,
@@ -98,6 +114,20 @@ export const useGameStore = create<GameState>((set, get) => ({
   
   rescueColonist: () => set((state) => ({ 
     colonistsRescued: Math.min(state.colonistsTotal, state.colonistsRescued + 1) 
+  })),
+
+  recoverData: () => set((state) => ({ 
+    dataRecovered: Math.min(state.dataTotal, state.dataRecovered + 1) 
+  })),
+
+  investigateAnomaly: () => set((state) => ({ 
+    anomaliesInvestigated: Math.min(state.anomaliesTotal, state.anomaliesInvestigated + 1) 
+  })),
+
+  findAstra: () => set({ astraFound: true }),
+
+  recoverRobot: () => set((state) => ({ 
+    robotsRecovered: state.robotsRecovered + 1 
   })),
 
   restoreCommunications: () => set({ communicationsRestored: true }),

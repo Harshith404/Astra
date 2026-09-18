@@ -9,7 +9,12 @@ export default class GameScene extends Phaser.Scene {
   private robotsMap: Map<string, Phaser.Types.Physics.Arcade.SpriteWithDynamicBody> = new Map();
   private commStation!: Phaser.GameObjects.Sprite;
   private colonistsGroup!: Phaser.Physics.Arcade.Group;
+  private dataTerminalsGroup!: Phaser.Physics.Arcade.Group;
+  private anomaliesGroup!: Phaser.Physics.Arcade.Group;
+  private astraChamber!: Phaser.GameObjects.Sprite;
   private interactKey!: Phaser.Input.Keyboard.Key;
+  private deployPreview!: Phaser.GameObjects.Sprite;
+  private deployRadius!: Phaser.GameObjects.Graphics;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -57,9 +62,14 @@ export default class GameScene extends Phaser.Scene {
     const store = useGameStore.getState();
     store.missionTimeLeft = config.timeLimit;
     store.colonistsTotal = config.totalColonists;
+    store.dataTotal = data.levelId === 'level-2' ? 3 : 0;
+    store.anomaliesTotal = data.levelId === 'level-3' ? 3 : 0;
     store.missionStatus = 'active';
     store.communicationsRestored = false;
     store.colonistsRescued = 0;
+    store.dataRecovered = 0;
+    store.anomaliesInvestigated = 0;
+    store.astraFound = false;
     store.robots = {}; // Clear old
     
     config.initialRobots.forEach(robot => store.addRobot(robot));
@@ -80,16 +90,56 @@ export default class GameScene extends Phaser.Scene {
       this.physics.add.existing(col, true);
     }
 
+    this.dataTerminalsGroup = this.physics.add.group();
+    if (data.levelId === 'level-2') {
+      for (let i = 0; i < store.dataTotal; i++) {
+        const term = this.dataTerminalsGroup.create(Phaser.Math.Between(400, 1200), Phaser.Math.Between(300, 900), 'data_terminal');
+        term.setDepth(5).setTint(0x4299e1);
+        this.physics.add.existing(term, true);
+      }
+    }
+
+    this.anomaliesGroup = this.physics.add.group();
+    if (data.levelId === 'level-3') {
+      for (let i = 0; i < store.anomaliesTotal; i++) {
+        const anomaly = this.anomaliesGroup.create(Phaser.Math.Between(300, 1300), Phaser.Math.Between(300, 900), 'anomaly');
+        anomaly.setDepth(5).setTint(0xa855f7).setAlpha(0.8);
+        this.physics.add.existing(anomaly, true);
+      }
+      this.astraChamber = this.add.sprite(1400, 1000, 'astra_chamber').setDepth(5).setTint(0x22d3ee).setVisible(false);
+      this.physics.add.existing(this.astraChamber, true);
+      
+      // Hide comm station initially
+      this.commStation.setVisible(false);
+    }
+
     // 5. Setup Input
     if (this.input.keyboard) {
       this.interactKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     }
     
+    // Deployment Previews
+    this.deployPreview = this.add.sprite(0, 0, 'robot_standard').setAlpha(0.5).setDepth(20).setVisible(false).setScale(0.12);
+    this.deployRadius = this.add.graphics().setDepth(19).setVisible(false);
+
     // Deployment Click Handler
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       const store = useGameStore.getState();
       if (store.deploymentMode && store.missionStatus === 'active') {
         // pointer.worldX and pointer.worldY account for camera scroll
+        // Play pulse effect
+        const pulse = this.add.graphics();
+        pulse.lineStyle(4, 0x22d3ee, 1);
+        pulse.strokeCircle(pointer.worldX, pointer.worldY, 10);
+        pulse.setDepth(18);
+        this.tweens.add({
+          targets: pulse,
+          scale: 3,
+          alpha: 0,
+          duration: 400,
+          onComplete: () => pulse.destroy()
+        });
+        
         store.deployRobot(store.deploymentMode, pointer.worldX, pointer.worldY);
       }
     });
@@ -105,9 +155,82 @@ export default class GameScene extends Phaser.Scene {
     // Player Update
     this.player.update();
 
+    // Contextual interaction prompts
+    let canInteract = false;
+    let promptText = '';
+
+    const p = this.player.getSprite();
+    
+    // Check Comm station
+    if (this.commStation.visible && !store.communicationsRestored && Phaser.Math.Distance.Between(p.x, p.y, this.commStation.x, this.commStation.y) < 80) {
+      canInteract = true;
+      promptText = store.anomaliesTotal > 0 ? '[SPACE] RESTORE RELAY' : '[SPACE] RESTORE COMMUNICATIONS';
+    } 
+    // Check Astra Chamber
+    else if (this.astraChamber?.visible && !store.astraFound && Phaser.Math.Distance.Between(p.x, p.y, this.astraChamber.x, this.astraChamber.y) < 80) {
+      canInteract = true;
+      promptText = '[SPACE] LOCATE ASTRA';
+    } else {
+      // Check colonists
+      let foundInteractable = false;
+      this.colonistsGroup.getChildren().forEach((c: any) => {
+        if (!foundInteractable && c.active && Phaser.Math.Distance.Between(p.x, p.y, c.x, c.y) < 50) {
+          canInteract = true; promptText = '[SPACE] RESCUE COLONIST'; foundInteractable = true;
+        }
+      });
+
+      if (!foundInteractable) {
+        this.dataTerminalsGroup.getChildren().forEach((t: any) => {
+          if (!foundInteractable && t.active && Phaser.Math.Distance.Between(p.x, p.y, t.x, t.y) < 60) {
+            canInteract = true; promptText = '[SPACE] DOWNLOAD DATA'; foundInteractable = true;
+          }
+        });
+      }
+
+      if (!foundInteractable) {
+        this.anomaliesGroup.getChildren().forEach((a: any) => {
+          if (!foundInteractable && a.active && Phaser.Math.Distance.Between(p.x, p.y, a.x, a.y) < 60) {
+            canInteract = true; promptText = '[SPACE] INVESTIGATE ANOMALY'; foundInteractable = true;
+          }
+        });
+      }
+    }
+
+    if (canInteract) {
+      this.player.showPrompt(promptText);
+    } else {
+      this.player.hidePrompt();
+    }
+
     // Interaction Check
     if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
       this.handleInteract();
+    }
+
+    // Deployment preview logic
+    if (store.deploymentMode) {
+      const pointer = this.input.activePointer;
+      this.deployPreview.setPosition(pointer.worldX, pointer.worldY);
+      this.deployPreview.setVisible(true);
+      
+      let tex = 'robot_standard';
+      let radius = 100;
+      let color = 0x22d3ee;
+      if (store.deploymentMode === 'repair') { tex = 'robot_repair'; color = 0x10b981; }
+      if (store.deploymentMode === 'heavy') { tex = 'robot_heavy'; }
+      if (store.deploymentMode === 'shield') { tex = 'robot_shield'; radius = 150; color = 0xa855f7; }
+      
+      this.deployPreview.setTexture(tex);
+      
+      this.deployRadius.clear();
+      this.deployRadius.lineStyle(1, color, 0.4);
+      this.deployRadius.fillStyle(color, 0.1);
+      this.deployRadius.fillCircle(pointer.worldX, pointer.worldY, radius);
+      this.deployRadius.strokeCircle(pointer.worldX, pointer.worldY, radius);
+      this.deployRadius.setVisible(true);
+    } else {
+      this.deployPreview.setVisible(false);
+      this.deployRadius.setVisible(false);
     }
 
     // Sync Visuals from Simulation State
@@ -208,16 +331,63 @@ export default class GameScene extends Phaser.Scene {
     const pSprite = this.player.getSprite();
 
     // Check Communications
-    const distToComm = Phaser.Math.Distance.Between(pSprite.x, pSprite.y, this.commStation.x, this.commStation.y);
-    if (distToComm < 80 && !store.communicationsRestored) {
-      store.restoreCommunications();
-      this.commStation.setTexture('comm_station_online');
-      
-      const text = this.add.text(this.commStation.x, this.commStation.y - 60, 'COMMS ONLINE', { color: '#22d3ee', fontSize: '20px', fontStyle: 'bold' }).setOrigin(0.5);
-      this.tweens.add({ targets: text, y: text.y - 30, alpha: 0, duration: 2000, onComplete: () => text.destroy() });
-      
-      this.checkMissionComplete();
+    if (this.commStation.visible) {
+      const distToComm = Phaser.Math.Distance.Between(pSprite.x, pSprite.y, this.commStation.x, this.commStation.y);
+      if (distToComm < 80 && !store.communicationsRestored) {
+        store.restoreCommunications();
+        this.commStation.setTexture('comm_station_online');
+        
+        const text = this.add.text(this.commStation.x, this.commStation.y - 60, store.anomaliesTotal > 0 ? 'SIGNAL ACQUIRED' : 'COMMS ONLINE', { color: '#22d3ee', fontSize: '20px', fontStyle: 'bold' }).setOrigin(0.5);
+        this.tweens.add({ targets: text, y: text.y - 30, alpha: 0, duration: 2000, onComplete: () => text.destroy() });
+        
+        if (store.anomaliesTotal > 0) {
+          this.astraChamber.setVisible(true); // Reveal Astra
+        }
+        
+        this.checkMissionComplete();
+        return; // Prioritize this interaction
+      }
     }
+
+    // Check Astra
+    if (this.astraChamber?.visible && !store.astraFound) {
+      if (Phaser.Math.Distance.Between(pSprite.x, pSprite.y, this.astraChamber.x, this.astraChamber.y) < 80) {
+        store.findAstra();
+        const text = this.add.text(this.astraChamber.x, this.astraChamber.y - 60, 'ASTRA SIGNAL LOCKED. SHE IS ALIVE.', { color: '#a855f7', fontSize: '20px', fontStyle: 'bold' }).setOrigin(0.5);
+        this.tweens.add({ targets: text, y: text.y - 30, alpha: 0, duration: 3000, onComplete: () => text.destroy() });
+        this.checkMissionComplete();
+        return;
+      }
+    }
+
+    // Check Data
+    this.dataTerminalsGroup.getChildren().forEach((termObj: any) => {
+      if (!termObj.active) return;
+      if (Phaser.Math.Distance.Between(pSprite.x, pSprite.y, termObj.x, termObj.y) < 60) {
+        termObj.setActive(false).setTint(0x718096);
+        store.recoverData();
+        const text = this.add.text(termObj.x, termObj.y - 20, 'DATA RECOVERED', { color: '#4299e1', fontSize: '16px', fontStyle: 'bold' }).setOrigin(0.5);
+        this.tweens.add({ targets: text, y: text.y - 30, alpha: 0, duration: 1500, onComplete: () => text.destroy() });
+        this.checkMissionComplete();
+      }
+    });
+
+    // Check Anomalies
+    this.anomaliesGroup.getChildren().forEach((anomObj: any) => {
+      if (!anomObj.active) return;
+      if (Phaser.Math.Distance.Between(pSprite.x, pSprite.y, anomObj.x, anomObj.y) < 60) {
+        anomObj.setActive(false).setTint(0x718096).setAlpha(0.3);
+        store.investigateAnomaly();
+        const text = this.add.text(anomObj.x, anomObj.y - 20, 'ANALYSIS COMPLETE', { color: '#a855f7', fontSize: '16px', fontStyle: 'bold' }).setOrigin(0.5);
+        this.tweens.add({ targets: text, y: text.y - 30, alpha: 0, duration: 1500, onComplete: () => text.destroy() });
+        
+        if (store.anomaliesInvestigated === store.anomaliesTotal) {
+          this.commStation.setVisible(true); // Reveal Relay
+        }
+        
+        this.checkMissionComplete();
+      }
+    });
 
     // Check Colonists Rescue
     this.colonistsGroup.getChildren().forEach((colonistObj: any) => {
@@ -236,8 +406,37 @@ export default class GameScene extends Phaser.Scene {
 
   checkMissionComplete() {
     const store = useGameStore.getState();
-    if (store.communicationsRestored && store.colonistsRescued === store.colonistsTotal) {
-      store.completeMission('success');
+    
+    let complete = false;
+    
+    if (store.anomaliesTotal > 0) {
+      // Level 3
+      if (store.astraFound) {
+        complete = true;
+      }
+    } else if (store.dataTotal > 0) {
+      // Level 2
+      if (store.communicationsRestored && store.colonistsRescued === store.colonistsTotal && store.dataRecovered === store.dataTotal) {
+        complete = true;
+      }
+    } else {
+      // Level 1
+      if (store.communicationsRestored && store.colonistsRescued === store.colonistsTotal) {
+        complete = true;
+      }
+    }
+
+    if (complete && store.missionStatus === 'active') {
+      store.missionStatus = 'success'; // prevent multiple triggers
+      
+      // Dramatic flash
+      this.cameras.main.flash(1000, 255, 255, 255);
+      const text = this.add.text(800, 400, 'MISSION COMPLETE', { color: '#ffffff', fontSize: '64px', fontStyle: 'black' }).setOrigin(0.5).setDepth(100);
+      text.setScrollFactor(0);
+      
+      setTimeout(() => {
+        store.completeMission('success');
+      }, 2000);
     }
   }
 }
