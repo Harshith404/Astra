@@ -18,6 +18,7 @@ export interface Robot {
 
 export interface GameState {
   // Mission Info
+  currentLevelId: string;
   missionTimeLeft: number;
   colonistsRescued: number;
   colonistsTotal: number;
@@ -66,7 +67,9 @@ export interface GameState {
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
-  missionTimeLeft: 300, // seconds
+  // Initial State
+  currentLevelId: 'unknown',
+  missionTimeLeft: 120, // seconds
   colonistsRescued: 0,
   colonistsTotal: 10,
   dataRecovered: 0,
@@ -196,7 +199,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          levelId: (window as any).__NEXT_DATA__?.props?.pageProps?.levelId || 'unknown',
+          levelId: state.currentLevelId,
           rescued: state.colonistsRescued, 
           timeRemaining: state.missionTimeLeft 
         })
@@ -212,6 +215,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   startSimulation: (config) => {
     if (!config) return;
     set({
+      currentLevelId: config.id || 'unknown',
       missionStatus: 'briefing',
       missionEnergy: config.startingEnergy,
       robots: {},

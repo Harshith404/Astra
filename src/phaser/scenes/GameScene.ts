@@ -61,11 +61,9 @@ export default class GameScene extends Phaser.Scene {
     // Collisions
     this.physics.add.collider(this.player.getSprite(), rocks);
 
-    // Track level id for updates
-    (this as any).currentLevelId = data.levelId;
-
     // 3. Initialize level data into Zustand Simulation (Bridge)
     const store = useGameStore.getState();
+    store.currentLevelId = data.levelId;
     store.missionTimeLeft = config.timeLimit;
     store.colonistsTotal = config.totalColonists;
     store.dataTotal = data.levelId === 'level-2' ? 3 : 0;
