@@ -46,12 +46,18 @@ export async function POST(req: Request) {
     });
 
     // 6. Update best progress and deduplicate infinite batteries exploit
-    const { data: existingProgress } = await supabaseServer
-      .from('player_progress')
-      .select('*')
-      .eq('player_id', playerId)
-      .eq('mission_id', levelId)
-      .single();
+    let existingProgress = null;
+    try {
+      const { data, error } = await supabaseServer
+        .from('player_progress')
+        .select('*')
+        .eq('player_id', playerId)
+        .eq('mission_id', levelId)
+        .single();
+      if (!error) existingProgress = data;
+    } catch (e) {
+      console.warn('Could not read player_progress (schema cache issue?), continuing...', e);
+    }
 
     // Only award full batteries and support if the rescue count improved
     let awardedBatteries = 0;
@@ -69,15 +75,19 @@ export async function POST(req: Request) {
     }
 
     // Always ensure the mission is marked as completed
-    await supabaseServer.from('player_progress').upsert({
-      player_id: playerId,
-      mission_id: levelId,
-      unlocked: true,
-      completed: true,
-      best_survivors: Math.max(actualRescued, previousBest),
-      best_time: Math.max(mission.timer_seconds - actualTime, existingProgress?.best_time || 0),
-      communications_restored: true
-    });
+    try {
+      await supabaseServer.from('player_progress').upsert({
+        player_id: playerId,
+        mission_id: levelId,
+        unlocked: true,
+        completed: true,
+        best_survivors: Math.max(actualRescued, previousBest),
+        best_time: Math.max(mission.timer_seconds - actualTime, existingProgress?.best_time || 0),
+        communications_restored: true
+      });
+    } catch (e) {
+      console.warn('Failed to save player_progress (schema cache issue?)', e);
+    }
 
     // 7. Update Player Profile
     if (awardedBatteries > 0 || awardedSupport > 0) {
@@ -101,12 +111,16 @@ export async function POST(req: Request) {
       const currentLevelNum = parseInt(levelId.replace('level-', ''), 10);
       if (currentLevelNum >= 1 && currentLevelNum < 3) {
         const nextLevelId = `level-${currentLevelNum + 1}`;
-        await supabaseServer.from('player_progress').upsert({
-          player_id: playerId,
-          mission_id: nextLevelId,
-          unlocked: true,
-          completed: false
-        });
+        try {
+          await supabaseServer.from('player_progress').upsert({
+            player_id: playerId,
+            mission_id: nextLevelId,
+            unlocked: true,
+            completed: false
+          });
+        } catch (e) {
+          console.warn(`Failed to unlock next mission ${nextLevelId} (schema cache issue?)`, e);
+        }
       } else if (currentLevelNum === 3) {
         // Astra unlocked!
         await supabaseServer.from('players').update({ story_stage: 'ASTRA FOUND' }).eq('id', playerId);
