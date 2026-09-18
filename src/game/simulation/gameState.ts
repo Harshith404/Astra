@@ -64,6 +64,7 @@ export interface GameState {
   deployRobot: (type: string, x: number, y: number) => void;
   repairRobot: (id: string) => void;
   damageRobot: (id: string, amount: number) => void;
+  startMission: () => void;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -245,5 +246,9 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (consumeEnergy(20)) {
       updateRobot(id, { corruption: Math.max(0, get().robots[id].corruption - 50) });
     }
+  },
+
+  startMission: () => {
+    set({ missionStatus: 'active', briefing: false });
   }
 }));

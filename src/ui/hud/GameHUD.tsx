@@ -221,7 +221,7 @@ export default function GameHUD({ levelId }: { levelId: string }) {
           </div>
           
           <button 
-            onClick={() => store.completeMission('active')} 
+            onClick={() => store.startMission()} 
             className="w-full bg-mars-700 hover:bg-mars-500 py-4 font-black tracking-widest text-white transition-colors border border-mars-500"
           >
             [ DEPLOY ]
