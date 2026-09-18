@@ -32,6 +32,11 @@ export interface GameState {
   communicationsRestored: boolean;
   missionStatus: 'briefing' | 'active' | 'success' | 'failure';
 
+  // UI Flow States
+  briefing: boolean;
+  cinematicPlaying: boolean;
+  missionComplete: boolean;
+
   // Entities
   robots: Record<string, Robot>;
   deploymentMode: 'standard' | 'repair' | 'heavy' | 'shield' | null;
@@ -48,6 +53,8 @@ export interface GameState {
   addRobot: (robot: Robot) => void;
   useEnergy: (amount: number) => boolean;
   completeMission: (status: 'success' | 'failure' | 'active') => void;
+  startSimulation: (config?: any) => void;
+  updateSimulation: (time: number, delta: number) => void;
 
   // Player actions from UI
   setDeploymentMode: (type: 'standard' | 'repair' | 'heavy' | 'shield' | null) => void;
@@ -70,6 +77,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   maxMissionEnergy: 100,
   communicationsRestored: false,
   missionStatus: 'briefing',
+  briefing: true,
+  cinematicPlaying: false,
+  missionComplete: false,
   robots: {},
   deploymentMode: null,
 
@@ -165,7 +175,56 @@ export const useGameStore = create<GameState>((set, get) => ({
     return false;
   },
 
-  completeMission: (status) => set({ missionStatus: status }),
+  completeMission: async (result) => {
+    const state = get();
+    if (state.missionStatus !== 'active') return;
+    
+    set({ missionStatus: result, missionComplete: result !== 'active' });
+
+    if (result === 'active') return; // Just starting/deploying
+
+    // Supabase persist logic
+    try {
+      const res = await fetch('/api/mission/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          levelId: (window as any).__NEXT_DATA__?.props?.pageProps?.levelId || 'unknown',
+          rescued: state.colonistsRescued, 
+          timeRemaining: state.missionTimeLeft 
+        })
+      });
+      if (res.ok) {
+        console.log("Progress saved");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  },
+
+  startSimulation: (config) => {
+    if (!config) return;
+    set({
+      missionStatus: 'briefing',
+      missionEnergy: config.startingEnergy,
+      robots: {},
+      communicationsRestored: false,
+      colonistsRescued: 0,
+      colonistsTotal: config.totalColonists,
+      dataRecovered: 0,
+      dataTotal: config.dataTotal,
+      anomaliesTotal: config.anomaliesTotal,
+      anomaliesInvestigated: 0,
+      astraFound: false,
+      briefing: true,
+      cinematicPlaying: false,
+      missionComplete: false
+    });
+  },
+
+  updateSimulation: (time, delta) => {
+    // handled by updateSimulation function from external logic usually, or just implemented here as a no-op if unused.
+  },
 
   // Player actions from UI (Phaser logic will listen for these or process them in systems)
   repairRobot: (id) => {

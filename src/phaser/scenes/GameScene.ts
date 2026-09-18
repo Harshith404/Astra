@@ -489,24 +489,20 @@ export default class GameScene extends Phaser.Scene {
       if (Phaser.Math.Distance.Between(pSprite.x, pSprite.y, this.astraChamber.x, this.astraChamber.y) < 80) {
         store.findAstra();
         
-        // Dramatic sequence
+        // Dramatic sequence via React Overlay
         this.cameras.main.flash(2000, 168, 85, 247); // Purple flash
-        const t1 = this.add.text(800, 400, 'SIGNAL LOCKED', { color: '#a855f7', fontSize: '32px', fontStyle: 'black' }).setOrigin(0.5).setScrollFactor(0);
+        useGameStore.setState({ cinematicPlaying: true });
         
         this.time.delayedCall(1500, () => {
-          t1.setText('ASTRA\nLOCATION CONFIRMED');
           this.cameras.main.shake(500, 0.01);
         });
         
         this.time.delayedCall(3500, () => {
-          t1.setText("SHE'S ALIVE.");
-          t1.setFontSize(48);
-          t1.setColor('#ffffff');
           this.cameras.main.flash(1000, 255, 255, 255);
         });
         
         this.time.delayedCall(6000, () => {
-          t1.destroy();
+          useGameStore.setState({ cinematicPlaying: false });
           this.checkMissionComplete();
         });
         

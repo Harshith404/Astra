@@ -17,13 +17,7 @@ export default function GameHUD({ levelId }: { levelId: string }) {
     completed: boolean;
   } | null>(null);
 
-  useEffect(() => {
-    if (store.missionStatus === 'success') {
-      handleMissionEnd(true);
-    } else if (store.missionStatus === 'failure') {
-      handleMissionEnd(false);
-    }
-  }, [store.missionStatus]);
+  // moved down
 
   const handleMissionEnd = async (success: boolean) => {
     // Only fire once
@@ -62,6 +56,27 @@ export default function GameHUD({ levelId }: { levelId: string }) {
       });
     }
   };
+
+  useEffect(() => {
+    if (store.missionStatus === 'success') {
+      handleMissionEnd(true);
+    } else if (store.missionStatus === 'failure') {
+      handleMissionEnd(false);
+    }
+  }, [store.missionStatus, results]); // added results to deps to silence exhaustive-deps warning
+
+  if (store.cinematicPlaying) {
+    return (
+      <div className="absolute inset-0 z-[100] bg-black flex items-center justify-center pointer-events-auto">
+        <div className="flex flex-col items-center gap-12 font-mono tracking-[0.5em] text-white animate-pulse">
+          <span className="text-sm opacity-50">SIGNAL LOCKED</span>
+          <h1 className="text-6xl font-black text-neon-cyan tracking-[0.2em] shadow-lg">ASTRA</h1>
+          <span className="text-emerald-400">LOCATION CONFIRMED</span>
+          <span className="text-xl mt-8 tracking-widest text-white/80">SHE'S ALIVE</span>
+        </div>
+      </div>
+    );
+  }
 
   if (results) {
     return (
@@ -215,7 +230,7 @@ export default function GameHUD({ levelId }: { levelId: string }) {
           
           <button 
             onClick={() => store.completeMission('active')} 
-            className="w-full bg-mars-700 hover:bg-mars-500 py-4 font-black tracking-widest text-white transition-colors"
+            className="w-full bg-mars-700 hover:bg-mars-500 py-4 font-black tracking-widest text-white transition-colors border border-mars-500"
           >
             [ DEPLOY ]
           </button>
