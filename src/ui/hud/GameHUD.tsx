@@ -9,7 +9,6 @@ export default function GameHUD() {
   const store = useGameStore();
   const router = useRouter();
 
-  // Watch for mission success/failure
   useEffect(() => {
     if (store.missionStatus === 'success') {
       handleMissionEnd(true);
@@ -19,7 +18,6 @@ export default function GameHUD() {
   }, [store.missionStatus]);
 
   const handleMissionEnd = async (success: boolean) => {
-    // In a real game, this would pause the game and show a modal before routing
     alert(success ? 'MISSION SUCCESS!' : 'MISSION FAILED.');
     
     if (success) {
@@ -38,7 +36,7 @@ export default function GameHUD() {
       }
     }
     
-    router.push('/');
+    router.push('/missions');
   };
 
   if (store.missionStatus !== 'active') return null;
@@ -76,7 +74,6 @@ export default function GameHUD() {
                 {robot.state === 'rogue' && <AlertTriangle size={16} className="text-mars-500 animate-pulse" />}
               </div>
               
-              {/* Health Bar */}
               <div className="w-full h-2 bg-mars-900 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-emerald-500 transition-all duration-300" 
@@ -84,7 +81,6 @@ export default function GameHUD() {
                 />
               </div>
 
-              {/* Corruption Bar */}
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold text-storm-400">CORRUPTION</span>
                 <div className="flex-1 h-1.5 bg-mars-900 rounded-full overflow-hidden relative">
@@ -95,7 +91,6 @@ export default function GameHUD() {
                 </div>
               </div>
 
-              {/* Actions (Pointer events enabled here) */}
               <div className="flex gap-2 mt-2 pointer-events-auto">
                 <button 
                   onClick={() => store.repairRobot(robot.id)}
@@ -107,17 +102,50 @@ export default function GameHUD() {
               </div>
             </div>
           ))}
+
+          {/* Robot Deploy Cards */}
+          <div className="flex items-end gap-2 pointer-events-auto ml-4">
+            {[
+              { type: 'friendly', label: 'REPAIR', cost: 10, color: 'text-emerald-400' },
+              { type: 'medic', label: 'MEDIC', cost: 25, color: 'text-blue-400' },
+              { type: 'heavy', label: 'HEAVY', cost: 40, color: 'text-orange-400' },
+              { type: 'emp', label: 'EMP', cost: 15, color: 'text-purple-400' }
+            ].map(card => (
+              <button 
+                key={card.type}
+                onClick={() => store.setDeploymentMode(card.type as any)}
+                className={`flex flex-col items-center justify-center p-2 rounded border-2 transition-all w-16 h-20 
+                  ${store.deploymentMode === card.type ? 'bg-mars-700 border-mars-500 scale-110 shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'bg-black/80 border-mars-900 hover:border-mars-700'}
+                  ${store.missionEnergy < card.cost ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}
+                `}
+                disabled={store.missionEnergy < card.cost}
+              >
+                <span className={`text-[10px] font-black ${card.color}`}>{card.label}</span>
+                <span className="text-neon-cyan font-bold text-xs mt-2">{card.cost}</span>
+              </button>
+            ))}
+          </div>
+
         </div>
 
         {/* Energy Status */}
         <div className="game-hud-panel flex flex-col items-end gap-2">
           <div className="flex items-center gap-2 text-neon-cyan">
-            <span className="font-black text-xl">{store.missionEnergy}</span>
-            <Zap size={24} className="text-neon-cyan storm-glow" />
+            <span className="font-black text-2xl">{store.missionEnergy}</span>
+            <Zap size={28} className="text-neon-cyan storm-glow" />
           </div>
           <span className="text-xs font-bold text-mars-100 tracking-widest">DEPLOYMENT ENERGY</span>
         </div>
       </div>
+      
+      {/* Deployment Mode Overlay Indicator */}
+      {store.deploymentMode && (
+        <div className="absolute inset-0 pointer-events-none border-4 border-mars-500/50 rounded-lg animate-pulse z-50">
+           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 bg-mars-700/80 px-6 py-2 rounded-full backdrop-blur-sm border border-mars-500 text-mars-50 font-black tracking-widest text-sm shadow-[0_0_20px_rgba(239,68,68,0.5)]">
+             CLICK TARGET TO DEPLOY
+           </div>
+        </div>
+      )}
     </div>
   );
 }

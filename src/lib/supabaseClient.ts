@@ -6,6 +6,22 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'mock-anon-
 // This is a mocked/placeholder client until real credentials are provided
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+export type Database = {
+  public: {
+    Tables: {
+      players: {
+        Row: { id: string; username: string; support: number; batteries: number; };
+      };
+      missions: {
+        Row: { id: string; name: string; difficulty: string; timer_seconds: number; required_support: number; };
+      };
+      mission_results: {
+        Row: { id: string; player_id: string; mission_id: string; survivors: number; robots_saved: number; communications_restored: boolean; completion_time: number; support_earned: number; batteries_earned: number; created_at: string; };
+      };
+    }
+  }
+}
+
 export async function fetchPlayerProfile(userId: string) {
   // Mock fallback
   return {

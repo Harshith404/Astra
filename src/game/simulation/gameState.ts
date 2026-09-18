@@ -27,6 +27,7 @@ export interface GameState {
 
   // Entities
   robots: Record<string, Robot>;
+  deploymentMode: 'friendly' | 'medic' | 'heavy' | 'emp' | null;
 
   // Actions for Phaser -> Zustand
   updateMissionTime: (time: number) => void;
@@ -37,9 +38,11 @@ export interface GameState {
   useEnergy: (amount: number) => boolean;
   completeMission: (status: 'success' | 'failure') => void;
 
-  // Actions for React UI -> Zustand -> Phaser (via listening to changes)
+  // Player actions from UI
+  setDeploymentMode: (type: 'friendly' | 'medic' | 'heavy' | 'emp' | null) => void;
+  deployRobot: (type: string, x: number, y: number) => void;
   repairRobot: (id: string) => void;
-  deployEmp: (x: number, y: number) => void;
+  damageRobot: (id: string, amount: number) => void;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -51,6 +54,44 @@ export const useGameStore = create<GameState>((set, get) => ({
   communicationsRestored: false,
   missionStatus: 'briefing',
   robots: {},
+  deploymentMode: null,
+
+  setDeploymentMode: (type) => set({ deploymentMode: type as any }),
+
+  deployRobot: (type, x, y) => {
+    const { useEnergy, addRobot } = get();
+    // Simplified costs for MVP
+    const costs: Record<string, number> = { friendly: 10, medic: 25, heavy: 40, emp: 15 };
+    const cost = costs[type] || 20;
+
+    if (useEnergy(cost)) {
+      const id = `${type}_${Date.now()}`;
+      addRobot({
+        id,
+        type: type === 'emp' ? 'projectile' : 'friendly',
+        x,
+        y,
+        health: 100,
+        maxHealth: 100,
+        corruption: 0,
+        state: 'normal'
+      });
+      set({ deploymentMode: null }); // Exit mode after deploy
+    }
+  },
+
+  damageRobot: (id, amount) => set((state) => {
+    const robot = state.robots[id];
+    if (!robot || robot.state === 'destroyed') return state;
+    
+    const newHealth = Math.max(0, robot.health - amount);
+    return {
+      robots: {
+        ...state.robots,
+        [id]: { ...robot, health: newHealth, state: newHealth === 0 ? 'destroyed' : robot.state }
+      }
+    };
+  }),
 
   updateMissionTime: (time) => set({ missionTimeLeft: Math.max(0, time) }),
   
@@ -101,11 +142,5 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (useEnergy(20)) {
       updateRobot(id, { corruption: Math.max(0, get().robots[id].corruption - 50) });
     }
-  },
-
-  deployEmp: (x, y) => {
-    const { useEnergy } = get();
-    useEnergy(40);
-    // Phaser system will pick up this action and apply AoE stun/damage
   }
 }));
