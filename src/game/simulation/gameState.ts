@@ -27,6 +27,8 @@ export interface GameState {
   anomaliesTotal: number;
   astraFound: boolean;
   robotsRecovered: number;
+  robotsDeployed: number;
+  robotsLost: number;
   missionEnergy: number;
   maxMissionEnergy: number;
   communicationsRestored: boolean;
@@ -73,6 +75,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   anomaliesTotal: 0,
   astraFound: false,
   robotsRecovered: 0,
+  robotsDeployed: 0,
+  robotsLost: 0,
   missionEnergy: 100,
   maxMissionEnergy: 100,
   communicationsRestored: false,
@@ -103,7 +107,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         corruption: 0,
         state: 'normal'
       });
-      set({ deploymentMode: null }); // Exit mode after deploy
+      set((state) => ({ deploymentMode: null, robotsDeployed: state.robotsDeployed + 1 })); // Exit mode after deploy
     }
   },
 
@@ -112,11 +116,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (!robot || robot.state === 'destroyed') return state;
     
     const newHealth = Math.max(0, robot.health - amount);
+    const isDestroyed = newHealth === 0;
+    
     return {
       robots: {
         ...state.robots,
-        [id]: { ...robot, health: newHealth, state: newHealth === 0 ? 'destroyed' : robot.state }
-      }
+        [id]: { ...robot, health: newHealth, state: isDestroyed ? 'destroyed' : robot.state }
+      },
+      robotsLost: isDestroyed && robot.type === 'friendly' ? state.robotsLost + 1 : state.robotsLost
     };
   }),
 
@@ -218,7 +225,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       astraFound: false,
       briefing: true,
       cinematicPlaying: false,
-      missionComplete: false
+      missionComplete: false,
+      robotsDeployed: 0,
+      robotsLost: 0
     });
   },
 

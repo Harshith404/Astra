@@ -513,16 +513,23 @@ export default class GameScene extends Phaser.Scene {
         sprite.setAlpha(1);
         
         // Visual Tiers of Corruption
-        if (robot.corruption > 75) {
-           sprite.setTint(0xfca5a5);
-           if (Math.random() < 0.2) sprite.setAlpha(0.8);
-        } else if (robot.corruption > 50) {
-           sprite.setTint(0xfef08a);
-        } else if (robot.corruption > 25) {
+        if (robot.corruption >= 75) { // CRITICAL
+           sprite.setTint(0xef4444); // red-500
+           if (Math.random() < 0.3) {
+             sprite.setAlpha(0.8);
+             this.add.circle(sprite.x + Phaser.Math.Between(-15, 15), sprite.y + Phaser.Math.Between(-15, 15), 3, 0xef4444).setDepth(20).setAlpha(0.8);
+           }
+        } else if (robot.corruption >= 50) { // DANGEROUS
+           sprite.setTint(0xf97316); // orange-500
+           sprite.setAlpha(1);
+           if (Math.random() < 0.1) this.add.circle(sprite.x + Phaser.Math.Between(-10, 10), sprite.y + Phaser.Math.Between(-10, 10), 2, 0xa855f7).setDepth(20).setAlpha(0.8);
+        } else if (robot.corruption >= 25) { // WARNING
+           sprite.setTint(0xeab308); // yellow-500
+           sprite.setAlpha(1);
            if (Math.random() < 0.05) this.add.circle(sprite.x + Phaser.Math.Between(-10, 10), sprite.y + Phaser.Math.Between(-10, 10), 2, 0xa855f7).setDepth(20).setAlpha(0.5);
+        } else { // NORMAL
            sprite.clearTint();
-        } else {
-           sprite.clearTint();
+           sprite.setAlpha(1);
         }
         
         const p = this.player.getSprite();

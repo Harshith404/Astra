@@ -124,7 +124,7 @@ export default function UpgradesPage() {
                         : 'bg-black text-mars-700 border border-mars-900 cursor-not-allowed'}
                     `}
                   >
-                    {upgrading === robot.robot_type ? 'UPGRADING...' : 'UPGRADE'}
+                    {upgrading === robot.robot_type ? 'UPGRADING...' : `UPGRADE TO L${robot.level + 1}`}
                     {!upgrading && (
                       <span className={`text-xs ml-2 flex items-center gap-1 ${canUpgrade ? 'text-neon-cyan' : 'text-mars-900'}`}>
                         {cost} <Zap size={14} />

@@ -13,7 +13,7 @@ export default function MainMenu() {
     // Check local storage so we don't play cinematic every single time they return to menu
     const hasSeenIntro = localStorage.getItem('astra_intro_seen');
     if (hasSeenIntro) {
-      setShowCinematic(false);
+      setTimeout(() => setShowCinematic(false), 0);
     }
 
     fetchProfile().then(data => {

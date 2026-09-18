@@ -145,6 +145,14 @@ export default function GameHUD({ levelId }: { levelId: string }) {
               <span className="font-bold text-mars-50">{store.robotsRecovered}</span>
             </div>
             <div className="flex justify-between border-b border-mars-900 pb-2">
+              <span>ROBOTS DEPLOYED</span>
+              <span className="font-bold text-mars-50">{store.robotsDeployed}</span>
+            </div>
+            <div className="flex justify-between border-b border-mars-900 pb-2">
+              <span>ROBOTS LOST</span>
+              <span className="font-bold text-mars-50">{store.robotsLost}</span>
+            </div>
+            <div className="flex justify-between border-b border-mars-900 pb-2">
               <span>COMMUNICATIONS</span>
               <span className="font-bold text-mars-50">{store.communicationsRestored ? 'RESTORED' : 'OFFLINE'}</span>
             </div>
@@ -188,28 +196,27 @@ export default function GameHUD({ levelId }: { levelId: string }) {
           </div>
           
           <div className="flex flex-col gap-3 font-mono text-mars-100 text-sm border-t border-b border-mars-900 py-6">
-            <div className="flex justify-between">
+            <div className="flex flex-col mb-2">
               <span className="text-mars-400">STATUS:</span>
-              <span className="text-mars-500 animate-pulse">CRITICAL</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-mars-400">COMMS:</span>
-              <span className="text-mars-50">OFFLINE</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-mars-400">STORM:</span>
-              <span className="text-mars-500">ACTIVE</span>
+              <span className="text-mars-500 animate-pulse">{levelId === 'level-3' ? 'SIGNAL INTERFERENCE' : 'COMMUNICATIONS OFFLINE'}</span>
             </div>
             
-            <div className="mt-4 flex flex-col gap-2">
-              <span className="text-mars-400 font-bold mb-1">PRIMARY OBJECTIVE</span>
+            <div className="flex flex-col gap-1 mb-2">
+              <span className="text-mars-400 font-bold">PRIMARY OBJECTIVE:</span>
               <span className="text-emerald-400">
-                {levelId === 'level-3' ? 'INVESTIGATE ANOMALY POINTS' : 'RESCUE COLONISTS'}
+                {levelId === 'level-3' ? 'INVESTIGATE ANOMALIES' : 'RESCUE COLONISTS'}
               </span>
-              
-              <span className="text-mars-400 font-bold mt-2 mb-1">SECONDARY OBJECTIVES</span>
-              {levelId === 'level-2' && <span className="text-mars-50">RECOVER DATA TERMINALS</span>}
+            </div>
+            
+            <div className="flex flex-col gap-1 mb-2">
+              <span className="text-mars-400 font-bold">SECONDARY:</span>
+              {levelId === 'level-2' && <span className="text-mars-50">RECOVER DATA</span>}
               <span className="text-mars-50">RESTORE {levelId === 'level-3' ? 'RELAY' : 'COMMUNICATIONS'}</span>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-mars-400 font-bold">SURVIVAL WINDOW:</span>
+              <span className="text-neon-cyan font-bold">{Math.floor(store.missionTimeLeft / 60).toString().padStart(2, '0')}:{(store.missionTimeLeft % 60).toString().padStart(2, '0')}</span>
             </div>
           </div>
           

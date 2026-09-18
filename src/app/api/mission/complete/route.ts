@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer, getPlayerId } from '../../../../lib/supabase/server';
+import { revalidatePath } from 'next/cache';
 
 export async function POST(req: Request) {
   try {
@@ -62,20 +63,21 @@ export async function POST(req: Request) {
       // Award the difference to prevent infinite farming of the same level
       awardedBatteries = (actualRescued - previousBest) * 20 + 50; 
       awardedSupport = (actualRescued - previousBest) * 10;
-
-      await supabaseServer.from('player_progress').upsert({
-        player_id: playerId,
-        mission_id: levelId,
-        unlocked: true,
-        completed: true,
-        best_survivors: actualRescued,
-        best_time: mission.timer_seconds - actualTime,
-        communications_restored: true
-      });
     } else {
       // Minor consolation reward for replay
       awardedBatteries = 10;
     }
+
+    // Always ensure the mission is marked as completed
+    await supabaseServer.from('player_progress').upsert({
+      player_id: playerId,
+      mission_id: levelId,
+      unlocked: true,
+      completed: true,
+      best_survivors: Math.max(actualRescued, previousBest),
+      best_time: Math.max(mission.timer_seconds - actualTime, existingProgress?.best_time || 0),
+      communications_restored: true
+    });
 
     // 7. Update Player Profile
     if (awardedBatteries > 0 || awardedSupport > 0) {
@@ -94,20 +96,26 @@ export async function POST(req: Request) {
     }
 
     // 8. Unlock Next Mission
-    if (existingProgress && !existingProgress.completed) {
+    const isFirstCompletion = !existingProgress || !existingProgress.completed;
+    if (isFirstCompletion) {
       const currentLevelNum = parseInt(levelId.replace('level-', ''), 10);
       if (currentLevelNum >= 1 && currentLevelNum < 3) {
         const nextLevelId = `level-${currentLevelNum + 1}`;
         await supabaseServer.from('player_progress').upsert({
           player_id: playerId,
           mission_id: nextLevelId,
-          unlocked: true
+          unlocked: true,
+          completed: false
         });
       } else if (currentLevelNum === 3) {
         // Astra unlocked!
         await supabaseServer.from('players').update({ story_stage: 'ASTRA FOUND' }).eq('id', playerId);
       }
     }
+
+    // 9. Revalidate dependent paths
+    revalidatePath('/missions');
+    revalidatePath('/upgrades');
 
     return NextResponse.json({ 
       success: true, 

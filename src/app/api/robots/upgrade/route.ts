@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseServer, getPlayerId } from '../../../../lib/supabase/server';
+import { revalidatePath } from 'next/cache';
 
 export async function POST(req: Request) {
   try {
@@ -37,6 +38,8 @@ export async function POST(req: Request) {
       supabaseServer.from('player_robots').update({ level: robot.level + 1 }).eq('player_id', playerId).eq('robot_type', robotType)
     ]);
 
+    revalidatePath('/upgrades');
+    
     return NextResponse.json({ 
       success: true, 
       newLevel: robot.level + 1,
