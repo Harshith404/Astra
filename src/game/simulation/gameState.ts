@@ -6,7 +6,7 @@ export type EntityState = 'normal' | 'corrupted' | 'rogue' | 'destroyed';
 
 export interface Robot {
   id: string;
-  type: 'friendly' | 'enemy';
+  type: 'friendly' | 'enemy' | 'projectile';
   x: number;
   y: number;
   health: number;

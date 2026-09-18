@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import CinematicPlayer from '../ui/components/CinematicPlayer';
+import { fetchProfile } from './actions';
 
 export default function MainMenu() {
   const [showCinematic, setShowCinematic] = useState(true);
@@ -15,8 +16,9 @@ export default function MainMenu() {
       setShowCinematic(false);
     }
 
-    // Mock fetch profile
-    setProfile({ batteries: 1500, colonySupport: 42 });
+    fetchProfile().then(data => {
+      setProfile(data);
+    });
   }, []);
 
   const handleCinematicComplete = () => {
@@ -55,9 +57,12 @@ export default function MainMenu() {
           >
             MISSIONS
           </Link>
-          <button className="game-hud-panel text-center py-4 text-mars-100 font-bold tracking-[0.2em] hover:bg-mars-900 transition-colors opacity-70 hover:opacity-100">
+          <Link 
+            href="/upgrades"
+            className="game-hud-panel text-center py-4 text-mars-100 font-bold tracking-[0.2em] hover:bg-mars-900 transition-colors opacity-70 hover:opacity-100"
+          >
             UPGRADES
-          </button>
+          </Link>
           <button className="game-hud-panel text-center py-4 text-mars-100 font-bold tracking-[0.2em] hover:bg-mars-900 transition-colors opacity-70 hover:opacity-100">
             STORY
           </button>

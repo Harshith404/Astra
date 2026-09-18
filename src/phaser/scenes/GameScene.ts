@@ -136,8 +136,9 @@ export default class GameScene extends Phaser.Scene {
           });
           
           if (nearest) {
-            this.physics.moveToObject(sprite, nearest, 400);
-            sprite.setRotation(Math.atan2(nearest.y - sprite.y, nearest.x - sprite.x));
+            const target = nearest as Phaser.GameObjects.Sprite;
+            this.physics.moveToObject(sprite, target, 400);
+            sprite.setRotation(Math.atan2(target.y - sprite.y, target.x - sprite.x));
           } else {
              sprite.setVelocity(400, 0); // fallback
           }

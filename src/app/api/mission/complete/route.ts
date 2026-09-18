@@ -1,57 +1,115 @@
 import { NextResponse } from 'next/server';
-import { updatePlayerProgress } from '../../../../lib/supabaseClient';
-import { level1 } from '../../../../game/content/levels/level1';
+import { supabaseServer, getPlayerId } from '../../../../lib/supabase/server';
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const body = await request.json();
-    const { levelId, rescued, timeRemaining } = body;
+    const { levelId, rescued, timeRemaining } = await req.json();
 
-    if (!levelId || rescued === undefined || timeRemaining === undefined) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    // 1. Identify player
+    const playerId = await getPlayerId();
+    if (!playerId) {
+      return NextResponse.json({ error: 'Player not found' }, { status: 401 });
     }
 
-    // Server-side validation
-    // Prevent client-side cheating (e.g., claiming 50 colonists rescued when max is 5)
-    let maxColonists = 0;
-    let baseBatteries = 0;
-    let baseSupport = 0;
+    // 2. Validate mission
+    const { data: mission } = await supabaseServer
+      .from('missions')
+      .select('*')
+      .eq('id', levelId)
+      .single();
 
-    // Hardcode level-1 for MVP, would normally fetch from DB or config map
-    if (levelId === 'level-1') {
-      maxColonists = level1.totalColonists;
-      baseBatteries = level1.rewards.batteries;
-      baseSupport = level1.rewards.baseSupport;
-    } else {
-      return NextResponse.json({ error: 'Invalid level ID' }, { status: 400 });
+    if (!mission) {
+      return NextResponse.json({ error: 'Invalid mission' }, { status: 400 });
     }
 
-    // Clamp values
-    const actualRescued = Math.min(Math.max(0, rescued), maxColonists);
+    // 3. Validate & sanitize values
+    const actualRescued = Math.min(Math.max(0, rescued), mission.total_colonists);
+    const actualTime = Math.min(Math.max(0, timeRemaining), mission.timer_seconds);
+
+    // 4. Calculate Rewards
+    // Base 50 batteries + 20 per survivor + time bonus
+    const batteriesEarned = 50 + (actualRescued * 20) + Math.floor(actualTime / 10);
+    // Support earned = survivors * 10
+    const supportEarned = actualRescued * 10;
+
+    // 5. Update Mission Results (History)
+    await supabaseServer.from('mission_results').insert({
+      player_id: playerId,
+      mission_id: levelId,
+      survivors: actualRescued,
+      robots_saved: 0, // Simplified for MVP
+      communications_restored: true,
+      completion_time: mission.timer_seconds - actualTime,
+      support_earned: supportEarned,
+      batteries_earned: batteriesEarned
+    });
+
+    // 6. Update best progress and deduplicate infinite batteries exploit
+    const { data: existingProgress } = await supabaseServer
+      .from('player_progress')
+      .select('*')
+      .eq('player_id', playerId)
+      .eq('mission_id', levelId)
+      .single();
+
+    // Only award full batteries and support if the rescue count improved
+    let awardedBatteries = 0;
+    let awardedSupport = 0;
+
+    const previousBest = existingProgress?.best_survivors || 0;
     
-    // Calculate rewards securely on server
-    // e.g. 10 batteries per rescued colonist + base
-    const batteriesEarned = baseBatteries + (actualRescued * 10);
-    const supportEarned = baseSupport + actualRescued;
+    if (actualRescued > previousBest) {
+      // Award the difference to prevent infinite farming of the same level
+      awardedBatteries = (actualRescued - previousBest) * 20 + 50; 
+      awardedSupport = (actualRescued - previousBest) * 10;
 
-    // Persist to Supabase
-    // In a real app we'd get the userId from auth session
-    const success = await updatePlayerProgress('mock-user-123', batteriesEarned, supportEarned);
-
-    if (success) {
-      return NextResponse.json({ 
-        success: true, 
-        rewards: {
-          batteries: batteriesEarned,
-          support: supportEarned
-        }
+      await supabaseServer.from('player_progress').upsert({
+        player_id: playerId,
+        mission_id: levelId,
+        unlocked: true,
+        completed: true,
+        best_survivors: actualRescued,
+        best_time: mission.timer_seconds - actualTime,
+        communications_restored: true
       });
     } else {
-      throw new Error('Database update failed');
+      // Minor consolation reward for replay
+      awardedBatteries = 10;
     }
 
+    // 7. Update Player Profile
+    if (awardedBatteries > 0 || awardedSupport > 0) {
+      const { data: profile } = await supabaseServer
+        .from('players')
+        .select('batteries, support')
+        .eq('id', playerId)
+        .single();
+        
+      if (profile) {
+        await supabaseServer.from('players').update({
+          batteries: profile.batteries + awardedBatteries,
+          support: profile.support + awardedSupport
+        }).eq('id', playerId);
+      }
+    }
+
+    // 8. Unlock Next Mission
+    if (levelId === 'level-1' && existingProgress && !existingProgress.completed) {
+      await supabaseServer.from('player_progress').upsert({
+        player_id: playerId,
+        mission_id: 'level-2',
+        unlocked: true
+      });
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      awardedBatteries, 
+      awardedSupport 
+    });
+
   } catch (error) {
-    console.error('Mission completion error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Mission complete error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
