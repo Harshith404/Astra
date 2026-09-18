@@ -28,12 +28,64 @@ export default class BootScene extends Phaser.Scene {
 
     const graphics = this.make.graphics({ x: 0, y: 0 });
 
-    // --- Ground Tile / Obstacle ---
-    graphics.fillStyle(0x450a0a, 1); // Dark red Mars rock
+    // Mars rock obstacle
+    graphics.fillStyle(0x450a0a, 1);
     graphics.fillRoundedRect(0, 0, 64, 64, 8);
     graphics.lineStyle(2, 0x7f1d1d, 1);
     graphics.strokeRoundedRect(0, 0, 64, 64, 8);
     graphics.generateTexture('mars_rock', 64, 64);
+    graphics.clear();
+
+    // Storm particle (small glowing dot)
+    graphics.fillStyle(0xfbbf24, 1);
+    graphics.fillCircle(4, 4, 4);
+    graphics.generateTexture('storm_particle', 8, 8);
+    graphics.clear();
+
+    // Colonist (cyan circle person)
+    graphics.fillStyle(0x22d3ee, 1);
+    graphics.fillCircle(16, 16, 12);
+    graphics.fillStyle(0xfef3c7, 1);
+    graphics.fillCircle(16, 8, 6);
+    graphics.generateTexture('colonist', 32, 32);
+    graphics.clear();
+
+    // Comm station (antenna tower shape)
+    graphics.fillStyle(0x475569, 1);
+    graphics.fillRect(12, 32, 8, 32);
+    graphics.fillStyle(0xef4444, 1);
+    graphics.fillTriangle(16, 0, 4, 32, 28, 32);
+    graphics.lineStyle(2, 0xf87171, 1);
+    graphics.strokeTriangle(16, 0, 4, 32, 28, 32);
+    graphics.generateTexture('comm_station_offline', 32, 64);
+    graphics.clear();
+
+    // Comm station online (green)
+    graphics.fillStyle(0x475569, 1);
+    graphics.fillRect(12, 32, 8, 32);
+    graphics.fillStyle(0x10b981, 1);
+    graphics.fillTriangle(16, 0, 4, 32, 28, 32);
+    graphics.generateTexture('comm_station_online', 32, 64);
+    graphics.clear();
+
+    // Data terminal (blue rectangle with screen)
+    graphics.fillStyle(0x1e40af, 1);
+    graphics.fillRoundedRect(0, 0, 48, 48, 6);
+    graphics.fillStyle(0x60a5fa, 1);
+    graphics.fillRect(6, 6, 36, 24);
+    graphics.fillStyle(0x1d4ed8, 1);
+    graphics.fillRect(6, 36, 36, 6);
+    graphics.generateTexture('data_terminal', 48, 48);
+    graphics.clear();
+
+    // Astra Chamber (glowing purple orb)
+    graphics.fillStyle(0x7c3aed, 0.8);
+    graphics.fillCircle(32, 32, 28);
+    graphics.lineStyle(3, 0xa78bfa, 1);
+    graphics.strokeCircle(32, 32, 28);
+    graphics.fillStyle(0xffffff, 1);
+    graphics.fillCircle(32, 32, 8);
+    graphics.generateTexture('astra_chamber', 64, 64);
     graphics.clear();
 
     this.load.image('mars_terrain', '/assets/mars_terrain.jpg');
