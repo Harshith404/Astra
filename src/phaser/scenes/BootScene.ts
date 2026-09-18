@@ -116,6 +116,10 @@ export default class BootScene extends Phaser.Scene {
     graphics.clear();
 
     this.load.image('mars_terrain', '/assets/mars_terrain.jpg');
+    this.load.image('robot_standard', '/assets/robots/robot-standard.png');
+    this.load.image('robot_repair', '/assets/robots/robot-repair.png');
+    this.load.image('robot_heavy', '/assets/robots/robot-heavy.png');
+    this.load.image('robot_shield', '/assets/robots/robot-shield.png');
   }
 
   create() {

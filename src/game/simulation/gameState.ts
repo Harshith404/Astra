@@ -7,6 +7,7 @@ export type EntityState = 'normal' | 'corrupted' | 'rogue' | 'destroyed';
 export interface Robot {
   id: string;
   type: 'friendly' | 'enemy' | 'projectile';
+  subType?: 'standard' | 'repair' | 'heavy' | 'shield';
   x: number;
   y: number;
   health: number;
@@ -27,7 +28,7 @@ export interface GameState {
 
   // Entities
   robots: Record<string, Robot>;
-  deploymentMode: 'friendly' | 'medic' | 'heavy' | 'emp' | null;
+  deploymentMode: 'standard' | 'repair' | 'heavy' | 'shield' | null;
 
   // Actions for Phaser -> Zustand
   updateMissionTime: (time: number) => void;
@@ -39,7 +40,7 @@ export interface GameState {
   completeMission: (status: 'success' | 'failure') => void;
 
   // Player actions from UI
-  setDeploymentMode: (type: 'friendly' | 'medic' | 'heavy' | 'emp' | null) => void;
+  setDeploymentMode: (type: 'standard' | 'repair' | 'heavy' | 'shield' | null) => void;
   deployRobot: (type: string, x: number, y: number) => void;
   repairRobot: (id: string) => void;
   damageRobot: (id: string, amount: number) => void;
@@ -60,19 +61,19 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   deployRobot: (type, x, y) => {
     const { useEnergy, addRobot } = get();
-    // Simplified costs for MVP
-    const costs: Record<string, number> = { friendly: 10, medic: 25, heavy: 40, emp: 15 };
+    const costs: Record<string, number> = { standard: 10, repair: 25, heavy: 40, shield: 30 };
     const cost = costs[type] || 20;
 
     if (useEnergy(cost)) {
       const id = `${type}_${Date.now()}`;
       addRobot({
         id,
-        type: type === 'emp' ? 'projectile' : 'friendly',
+        type: 'friendly',
+        subType: type as 'standard' | 'repair' | 'heavy' | 'shield',
         x,
         y,
-        health: 100,
-        maxHealth: 100,
+        health: type === 'heavy' ? 200 : 100,
+        maxHealth: type === 'heavy' ? 200 : 100,
         corruption: 0,
         state: 'normal'
       });

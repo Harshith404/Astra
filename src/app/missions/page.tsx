@@ -16,15 +16,11 @@ export default function MissionsPage() {
   const getProgress = (id: string) => progress.find(p => p.mission_id === id);
   const isUnlocked = (id: string) => progress.some(p => p.mission_id === id && p.unlocked);
 
-  // Snake layout for 7 missions
+  // Vertical layout for 3 missions
   const positions = [
-    { left: '15%', top: '20%' }, // 1
-    { left: '40%', top: '25%' }, // 2
-    { left: '65%', top: '20%' }, // 3
-    { left: '85%', top: '45%' }, // 4
-    { left: '60%', top: '65%' }, // 5
-    { left: '35%', top: '60%' }, // 6
-    { left: '10%', top: '80%' }, // 7
+    { left: '50%', top: '80%' }, // 1 - OUTPOST DELTA (Bottom)
+    { left: '50%', top: '50%' }, // 2 - HELIOS LAB (Middle)
+    { left: '50%', top: '20%' }, // 3 - BURIED SIGNAL (Top)
   ];
 
   return (
@@ -40,7 +36,7 @@ export default function MissionsPage() {
         <h2 className="text-xl font-black tracking-[0.3em] text-mars-500">TACTICAL DEPLOYMENT</h2>
       </div>
 
-      <div className="z-10 w-full h-full max-w-[1400px] relative mt-16 p-8">
+      <div className="z-10 w-full h-full max-w-[1400px] relative mt-16 p-8 flex justify-center">
         
         {/* Connection Lines (SVG) */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
@@ -72,11 +68,14 @@ export default function MissionsPage() {
           if (!unlocked) {
             return (
               <div key={mission.id} className="absolute z-10" style={{ left: pos.left, top: pos.top, transform: 'translate(-50%, -50%)' }}>
-                <div className="flex flex-col items-center gap-2 opacity-40 cursor-not-allowed">
+                <div className="flex items-center gap-4 opacity-40 cursor-not-allowed">
                   <div className="w-16 h-16 rounded-full border-2 border-mars-900 bg-black flex items-center justify-center shadow-lg">
                     <Lock size={20} className="text-mars-900" />
                   </div>
-                  <span className="text-mars-900 font-bold tracking-widest text-xs text-center w-32">{mission.name}</span>
+                  <div className="flex flex-col">
+                    <span className="text-mars-900 font-bold tracking-widest text-lg w-40 text-left">0{i + 1} {mission.name}</span>
+                    <span className="text-mars-900 font-mono text-xs text-left">LOCKED</span>
+                  </div>
                 </div>
               </div>
             );
@@ -84,7 +83,7 @@ export default function MissionsPage() {
 
           return (
             <Link key={mission.id} href={`/game/${mission.id}`} className="absolute group z-20" style={{ left: pos.left, top: pos.top, transform: 'translate(-50%, -50%)' }}>
-              <div className="flex flex-col items-center gap-2">
+              <div className="flex items-center gap-4">
                 <div className={`w-20 h-20 rounded-full border-4 flex items-center justify-center transition-all shadow-[0_0_20px_rgba(239,68,68,0.3)]
                   ${completed ? 'border-mars-300 bg-mars-900' : 'border-mars-500 bg-mars-950/80 group-hover:bg-mars-800'}
                   group-hover:scale-110`}
@@ -97,7 +96,17 @@ export default function MissionsPage() {
                   {!completed && <div className="absolute w-24 h-24 rounded-full border border-mars-500 animate-ping opacity-20" />}
                 </div>
                 
-                <div className="game-hud-panel w-64 mt-2 absolute top-20 scale-0 group-hover:scale-100 origin-top transition-transform pointer-events-none z-50 bg-black/90 backdrop-blur-md">
+                <div className="flex flex-col w-48 text-left">
+                  <span className="text-mars-300 font-bold tracking-widest text-lg drop-shadow-md">
+                    {mission.name}
+                  </span>
+                  <span className={`font-mono text-xs ${completed ? 'text-emerald-400' : 'text-mars-100'}`}>
+                    {completed ? 'COMPLETED' : 'DEPLOY NOW'}
+                  </span>
+                </div>
+                
+                {/* Tactical Panel on Hover */}
+                <div className="game-hud-panel w-64 absolute left-full ml-4 scale-0 group-hover:scale-100 origin-left transition-transform pointer-events-none z-50 bg-black/90 backdrop-blur-md">
                   <h3 className="text-mars-50 font-black text-sm mb-1 text-center tracking-[0.2em]">{mission.name}</h3>
                   <div className="w-full h-px bg-mars-700/50 mb-2" />
                   
@@ -128,10 +137,6 @@ export default function MissionsPage() {
                     </div>
                   </div>
                 </div>
-
-                <span className="text-mars-300 font-bold tracking-widest text-xs text-center w-40 mt-1 drop-shadow-md">
-                  {mission.name}
-                </span>
               </div>
             </Link>
           );

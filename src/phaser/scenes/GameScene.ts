@@ -131,52 +131,39 @@ export default class GameScene extends Phaser.Scene {
       }
 
       if (!sprite) {
-        const tex = robot.type === 'projectile' ? 'projectile' : (robot.type === 'friendly' ? 'friendly_robot' : 'rogue_robot');
-        sprite = this.physics.add.sprite(robot.x, robot.y, tex).setDepth(8);
-        this.robotsMap.set(robot.id, sprite);
-        
-        if (robot.type === 'projectile') {
-          // Find nearest rogue target
-          let nearest: Phaser.GameObjects.Sprite | null = null;
-          let minDist = Infinity;
-          this.robotsMap.forEach((s, id) => {
-            const r = store.robots[id];
-            if (r && r.state === 'rogue') {
-              const d = Phaser.Math.Distance.Between(sprite.x, sprite.y, s.x, s.y);
-              if (d < minDist) { minDist = d; nearest = s; }
-            }
-          });
-          
-          if (nearest) {
-            const target = nearest as Phaser.GameObjects.Sprite;
-            this.physics.moveToObject(sprite, target, 400);
-            sprite.setRotation(Math.atan2(target.y - sprite.y, target.x - sprite.x));
-          } else {
-             sprite.setVelocity(400, 0); // fallback
-          }
+        let tex = 'robot_standard';
+        if (robot.subType === 'repair') tex = 'robot_repair';
+        if (robot.subType === 'heavy') tex = 'robot_heavy';
+        if (robot.subType === 'shield') tex = 'robot_shield';
 
-          // Handle collision with ANY robot (in update loop we'll check overlap)
-        }
+        sprite = this.physics.add.sprite(robot.x, robot.y, tex).setDepth(8);
+        // Scale appropriately
+        sprite.setScale(0.12);
+        this.robotsMap.set(robot.id, sprite);
       }
       
-      if (robot.type !== 'projectile') {
-        if (robot.state === 'rogue') {
-          sprite.setTexture('rogue_robot');
-          // Simple wander/chase AI for rogue MVP
-          const p = this.player.getSprite();
-          if (Phaser.Math.Distance.Between(sprite.x, sprite.y, p.x, p.y) < 300) {
-            this.physics.moveToObject(sprite, p, 100);
-          } else if (Math.random() < 0.05) {
-             sprite.setVelocity(Phaser.Math.Between(-50, 50), Phaser.Math.Between(-50, 50));
-          }
-        } else if (robot.type === 'friendly') {
-          sprite.setTexture('friendly_robot');
-          const p = this.player.getSprite();
-          if (Phaser.Math.Distance.Between(sprite.x, sprite.y, p.x, p.y) > 100) {
-            this.physics.moveToObject(sprite, p, 150);
-          } else {
-            sprite.setVelocity(0);
-          }
+      if (robot.state === 'rogue') {
+        // Programmatic corruption effects
+        sprite.setTint(0xff5555); // Reddish/purple tint
+        if (Math.random() < 0.1) {
+          sprite.setAlpha(Phaser.Math.FloatBetween(0.5, 1)); // flicker
+        }
+        
+        // Simple wander/chase AI for rogue
+        const p = this.player.getSprite();
+        if (Phaser.Math.Distance.Between(sprite.x, sprite.y, p.x, p.y) < 300) {
+          this.physics.moveToObject(sprite, p, 100);
+        } else if (Math.random() < 0.05) {
+           sprite.setVelocity(Phaser.Math.Between(-50, 50), Phaser.Math.Between(-50, 50));
+        }
+      } else if (robot.type === 'friendly') {
+        sprite.clearTint();
+        sprite.setAlpha(1);
+        const p = this.player.getSprite();
+        if (Phaser.Math.Distance.Between(sprite.x, sprite.y, p.x, p.y) > 100) {
+          this.physics.moveToObject(sprite, p, 150);
+        } else {
+          sprite.setVelocity(0);
         }
       }
     });

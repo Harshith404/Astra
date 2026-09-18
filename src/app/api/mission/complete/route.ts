@@ -96,13 +96,16 @@ export async function POST(req: Request) {
     // 8. Unlock Next Mission
     if (existingProgress && !existingProgress.completed) {
       const currentLevelNum = parseInt(levelId.replace('level-', ''), 10);
-      if (currentLevelNum >= 1 && currentLevelNum < 7) {
+      if (currentLevelNum >= 1 && currentLevelNum < 3) {
         const nextLevelId = `level-${currentLevelNum + 1}`;
         await supabaseServer.from('player_progress').upsert({
           player_id: playerId,
           mission_id: nextLevelId,
           unlocked: true
         });
+      } else if (currentLevelNum === 3) {
+        // Astra unlocked!
+        await supabaseServer.from('players').update({ story_stage: 'ASTRA FOUND' }).eq('id', playerId);
       }
     }
 

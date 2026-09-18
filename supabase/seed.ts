@@ -37,7 +37,7 @@ async function seed() {
         description: 'Mining / Habitat Outpost',
         difficulty: 'EASY',
         timer_seconds: 120,
-        total_colonists: 10,
+        total_colonists: 8,
         required_support: 0,
         mission_order: 1
       },
@@ -47,59 +47,19 @@ async function seed() {
         description: 'Research Facility',
         difficulty: 'MEDIUM',
         timer_seconds: 180,
-        total_colonists: 12,
+        total_colonists: 10,
         required_support: 100,
         mission_order: 2
       },
       {
         id: 'level-3',
-        name: 'COMMS HUB',
-        description: 'Communications Relay',
+        name: 'THE BURIED SIGNAL',
+        description: 'Unknown Underground Structure',
         difficulty: 'HARD',
         timer_seconds: 240,
-        total_colonists: 15,
+        total_colonists: 5,
         required_support: 200,
         mission_order: 3
-      },
-      {
-        id: 'level-4',
-        name: 'OXYGEN FACILITY',
-        description: 'Hydroponics + Oxygen Production',
-        difficulty: 'HARD',
-        timer_seconds: 200,
-        total_colonists: 8,
-        required_support: 350,
-        mission_order: 4
-      },
-      {
-        id: 'level-5',
-        name: 'ARES REACTOR',
-        description: 'Main Energy / Reactor Facility',
-        difficulty: 'VERY HARD',
-        timer_seconds: 300,
-        total_colonists: 20,
-        required_support: 500,
-        mission_order: 5
-      },
-      {
-        id: 'level-6',
-        name: 'THE BURIED SIGNAL',
-        description: 'Unknown underground structure',
-        difficulty: 'EXTREME',
-        timer_seconds: 400,
-        total_colonists: 5,
-        required_support: 800,
-        mission_order: 6
-      },
-      {
-        id: 'level-7',
-        name: 'ASTRA',
-        description: 'Deep Structure',
-        difficulty: 'ASTRA',
-        timer_seconds: 500,
-        total_colonists: 1,
-        required_support: 1000,
-        mission_order: 7
       }
     ]);
 
