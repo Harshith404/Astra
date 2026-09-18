@@ -176,6 +176,54 @@ export default function GameHUD({ levelId }: { levelId: string }) {
     );
   }
 
+  if (store.missionStatus === 'briefing') {
+    return (
+      <div className="absolute inset-0 z-50 bg-black/95 backdrop-blur-md flex items-center justify-center pointer-events-auto">
+        <div className="game-hud-panel max-w-lg w-full flex flex-col gap-6 p-10 border border-mars-700">
+          <div className="flex flex-col gap-2">
+            <h3 className="text-neon-cyan font-mono tracking-widest text-sm">ASTRA-1</h3>
+            <h2 className="text-3xl font-black tracking-widest text-mars-100">
+              {levelId === 'level-1' ? 'OUTPOST DELTA' : levelId === 'level-2' ? 'HELIOS LAB' : 'BURIED SIGNAL'}
+            </h2>
+          </div>
+          
+          <div className="flex flex-col gap-3 font-mono text-mars-100 text-sm border-t border-b border-mars-900 py-6">
+            <div className="flex justify-between">
+              <span className="text-mars-400">STATUS:</span>
+              <span className="text-mars-500 animate-pulse">CRITICAL</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-mars-400">COMMS:</span>
+              <span className="text-mars-50">OFFLINE</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-mars-400">STORM:</span>
+              <span className="text-mars-500">ACTIVE</span>
+            </div>
+            
+            <div className="mt-4 flex flex-col gap-2">
+              <span className="text-mars-400 font-bold mb-1">PRIMARY OBJECTIVE</span>
+              <span className="text-emerald-400">
+                {levelId === 'level-3' ? 'INVESTIGATE ANOMALY POINTS' : 'RESCUE COLONISTS'}
+              </span>
+              
+              <span className="text-mars-400 font-bold mt-2 mb-1">SECONDARY OBJECTIVES</span>
+              {levelId === 'level-2' && <span className="text-mars-50">RECOVER DATA TERMINALS</span>}
+              <span className="text-mars-50">RESTORE {levelId === 'level-3' ? 'RELAY' : 'COMMUNICATIONS'}</span>
+            </div>
+          </div>
+          
+          <button 
+            onClick={() => store.completeMission('active')} 
+            className="w-full bg-mars-700 hover:bg-mars-500 py-4 font-black tracking-widest text-white transition-colors"
+          >
+            [ DEPLOY ]
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (store.missionStatus !== 'active') return null;
 
   return (
@@ -235,11 +283,22 @@ export default function GameHUD({ levelId }: { levelId: string }) {
           </div>
         </div>
 
-        <div className="game-hud-panel flex items-center gap-3 pointer-events-auto">
-          <Clock size={24} className={store.missionTimeLeft < 30 ? "text-mars-500 animate-pulse" : "text-mars-100"} />
-          <span className={`text-2xl font-black tabular-nums tracking-widest ${store.missionTimeLeft < 30 ? "text-mars-500" : "text-mars-50"}`}>
-            {Math.floor(store.missionTimeLeft / 60)}:{(store.missionTimeLeft % 60).toString().padStart(2, '0')}
-          </span>
+        <div className="game-hud-panel flex flex-col items-center gap-1 pointer-events-auto">
+          <div className="flex items-center gap-3">
+            <Clock size={24} className={store.missionTimeLeft < 30 ? "text-mars-500 animate-pulse" : "text-mars-100"} />
+            <span className={`text-2xl font-black tabular-nums tracking-widest ${store.missionTimeLeft < 30 ? "text-mars-500" : "text-mars-50"}`}>
+              {Math.floor(store.missionTimeLeft / 60)}:{(store.missionTimeLeft % 60).toString().padStart(2, '0')}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-[10px] font-bold text-mars-300">STORM LEVEL</span>
+            <div className="w-16 h-1.5 bg-black border border-mars-900 rounded overflow-hidden">
+              <div 
+                className={`h-full ${store.missionTimeLeft < 60 ? 'bg-mars-500 animate-pulse' : 'bg-mars-300'}`} 
+                style={{ width: `${Math.min(100, Math.max(0, 100 - (store.missionTimeLeft / 300) * 100))}%` }}
+              />
+            </div>
+          </div>
         </div>
         
         <div className="game-hud-panel flex items-center gap-3 pointer-events-auto">

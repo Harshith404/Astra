@@ -8,6 +8,9 @@ export class PlayerController {
   private cursors: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd: { W: Phaser.Input.Keyboard.Key; A: Phaser.Input.Keyboard.Key; S: Phaser.Input.Keyboard.Key; D: Phaser.Input.Keyboard.Key };
   private speed: number = 250;
+  private scene: Phaser.Scene;
+  private dustEmitter: Phaser.GameObjects.Particles.ParticleEmitter;
+  private isMoving: boolean = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     this.sprite = scene.physics.add.sprite(x, y, 'player');
@@ -36,12 +39,32 @@ export class PlayerController {
       padding: { x: 4, y: 2 }
     }).setOrigin(0.5).setDepth(20).setVisible(false);
 
+    this.scene = scene;
+
     if (scene.input.keyboard) {
       this.cursors = scene.input.keyboard.createCursorKeys();
       this.wasd = scene.input.keyboard.addKeys('W,A,S,D') as any;
     } else {
       throw new Error("Keyboard input not available");
     }
+
+    // Dust particles
+    this.dustEmitter = scene.add.particles(0, 0, 'storm_particle', {
+      scale: { start: 0.2, end: 0 },
+      alpha: { start: 0.3, end: 0 },
+      lifespan: 400,
+      speed: { min: 10, max: 30 },
+      frequency: -1 // Emit manually
+    });
+    this.dustEmitter.setDepth(14);
+  }
+
+  takeDamage() {
+    // Red flash
+    this.sprite.setTint(0xff0000);
+    this.scene.time.delayedCall(100, () => this.sprite.clearTint());
+    // Camera shake
+    this.scene.cameras.main.shake(100, 0.005);
   }
 
   getSprite() {
@@ -77,9 +100,22 @@ export class PlayerController {
 
     this.sprite.setVelocity(velocityX, velocityY);
 
+    const wasMoving = this.isMoving;
+    this.isMoving = (velocityX !== 0 || velocityY !== 0);
+
     // Simple rotation towards movement
-    if (velocityX !== 0 || velocityY !== 0) {
+    if (this.isMoving) {
       this.sprite.setRotation(Math.atan2(velocityY, velocityX));
+      
+      // Bobbing
+      this.sprite.scaleY = 1 + Math.sin(this.scene.time.now / 100) * 0.05;
+      
+      // Emit dust
+      if (Math.random() < 0.3) {
+        this.dustEmitter.emitParticleAt(this.sprite.x - velocityX * 0.05, this.sprite.y + 10);
+      }
+    } else {
+      this.sprite.scaleY = 1; // Reset bobbing
     }
 
     // Keep ring and text attached to player

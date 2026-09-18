@@ -78,17 +78,20 @@ export default function UpgradesPage() {
               return (
                 <div key={robot.robot_type} className="game-hud-panel flex flex-col gap-4">
                   <div className="flex justify-between items-center border-b border-mars-900 pb-2">
-                    <h2 className="text-xl font-black text-mars-100 uppercase tracking-widest">{robot.robot_type} DRONE</h2>
+                    <h2 className="text-xl font-black text-mars-100 uppercase tracking-widest">
+                      {robot.robot_type === 'friendly' ? 'STANDARD' : robot.robot_type === 'medic' ? 'REPAIR' : robot.robot_type === 'emp' ? 'SHIELD' : robot.robot_type} DRONE
+                    </h2>
                     <span className="text-neon-cyan font-bold tracking-widest">LEVEL {robot.level}</span>
                   </div>
                   
                   <div className="flex gap-4">
-                    <div className="w-24 h-24 bg-mars-950 border border-mars-700 rounded flex items-center justify-center">
-                       {/* Simple icon placeholder */}
-                       {robot.robot_type === 'medic' && <HeartPulse size={40} className="text-blue-500" />}
-                       {robot.robot_type === 'heavy' && <Shield size={40} className="text-orange-500" />}
-                       {robot.robot_type === 'emp' && <Zap size={40} className="text-purple-500" />}
-                       {robot.robot_type === 'friendly' && <Plus size={40} className="text-emerald-500" />}
+                    <div className="w-24 h-24 bg-mars-950 border border-mars-700 rounded flex items-center justify-center relative overflow-hidden">
+                       <img 
+                         src={`/assets/robot_${robot.robot_type === 'friendly' ? 'standard' : robot.robot_type === 'medic' ? 'repair' : robot.robot_type === 'emp' ? 'shield' : robot.robot_type}.png`} 
+                         alt={robot.robot_type} 
+                         className="w-16 h-16 object-contain filter drop-shadow-[0_0_10px_rgba(34,211,238,0.8)]"
+                       />
+                       <div className="absolute inset-0 bg-gradient-to-t from-mars-900/50 to-transparent mix-blend-overlay" />
                     </div>
                     <div className="flex-1 flex flex-col justify-center gap-2">
                       <div className="flex justify-between items-center text-sm font-bold text-mars-50">

@@ -7,6 +7,7 @@ import { PlayerController } from '../../game/entities/Player';
 export default class GameScene extends Phaser.Scene {
   private player!: PlayerController;
   private robotsMap: Map<string, Phaser.Types.Physics.Arcade.SpriteWithDynamicBody> = new Map();
+  private robotUIMap: Map<string, Phaser.GameObjects.Container> = new Map();
   private commStation!: Phaser.GameObjects.Sprite;
   private colonistsGroup!: Phaser.Physics.Arcade.Group;
   private dataTerminalsGroup!: Phaser.Physics.Arcade.Group;
@@ -15,6 +16,7 @@ export default class GameScene extends Phaser.Scene {
   private interactKey!: Phaser.Input.Keyboard.Key;
   private deployPreview!: Phaser.GameObjects.Sprite;
   private deployRadius!: Phaser.GameObjects.Graphics;
+  private objectiveMarker!: Phaser.GameObjects.Graphics;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -71,46 +73,72 @@ export default class GameScene extends Phaser.Scene {
     store.anomaliesInvestigated = 0;
     store.astraFound = false;
     store.robots = {}; // Clear old
+    this.robotsMap.clear();
+    this.robotUIMap.clear();
     
     config.initialRobots.forEach(robot => store.addRobot(robot));
 
     // 4. Visual Representations (Adapters)
-    this.commStation = this.add.sprite(1200, 300, 'comm_station_offline').setDepth(5);
-    this.physics.add.existing(this.commStation, true);
-    this.physics.add.collider(this.player.getSprite(), this.commStation);
-
+    // Setup Level Geometry/Entities depending on levelId
     this.colonistsGroup = this.physics.add.group();
-    for (let i = 0; i < config.totalColonists; i++) {
-      const col = this.colonistsGroup.create(
-        Phaser.Math.Between(800, 1400),
-        Phaser.Math.Between(200, 800),
-        'colonist'
-      );
-      col.setDepth(5);
-      this.physics.add.existing(col, true);
-    }
-
     this.dataTerminalsGroup = this.physics.add.group();
-    if (data.levelId === 'level-2') {
+    this.anomaliesGroup = this.physics.add.group();
+
+    if (data.levelId === 'level-1') {
+      // Outpost Delta - Scattered around central base
+      this.commStation = this.add.sprite(1200, 300, 'comm_station_offline').setDepth(5);
+      this.physics.add.existing(this.commStation, true);
+      this.physics.add.collider(this.player.getSprite(), this.commStation);
+
+      const colPos = [[900, 400], [1300, 500], [1000, 800], [700, 900], [1100, 200]];
+      for (let i = 0; i < Math.min(config.totalColonists, colPos.length); i++) {
+        const col = this.colonistsGroup.create(colPos[i][0], colPos[i][1], 'colonist').setDepth(5);
+        this.physics.add.existing(col, true);
+      }
+    } 
+    else if (data.levelId === 'level-2') {
+      // Helios Lab - Modules
+      // Draw some floor panels to simulate a lab
+      const graphics = this.add.graphics();
+      graphics.fillStyle(0x1a202c, 0.8);
+      graphics.lineStyle(2, 0x4a5568);
+      graphics.fillRect(400, 200, 800, 800);
+      graphics.strokeRect(400, 200, 800, 800);
+      
+      this.commStation = this.add.sprite(800, 250, 'comm_station_offline').setDepth(5);
+      this.physics.add.existing(this.commStation, true);
+      this.physics.add.collider(this.player.getSprite(), this.commStation);
+
+      const termPos = [[500, 400], [1100, 400], [800, 800]];
       for (let i = 0; i < store.dataTotal; i++) {
-        const term = this.dataTerminalsGroup.create(Phaser.Math.Between(400, 1200), Phaser.Math.Between(300, 900), 'data_terminal');
+        const term = this.dataTerminalsGroup.create(termPos[i][0], termPos[i][1], 'data_terminal');
         term.setDepth(5).setTint(0x4299e1);
         this.physics.add.existing(term, true);
       }
-    }
 
-    this.anomaliesGroup = this.physics.add.group();
-    if (data.levelId === 'level-3') {
+      const colPos = [[600, 300], [1000, 300], [500, 700], [1100, 700]];
+      for (let i = 0; i < Math.min(config.totalColonists, colPos.length); i++) {
+        const col = this.colonistsGroup.create(colPos[i][0], colPos[i][1], 'colonist').setDepth(5);
+        this.physics.add.existing(col, true);
+      }
+    }
+    else if (data.levelId === 'level-3') {
+      // Buried Signal - Underground corridor
+      this.cameras.main.setBackgroundColor('#000000');
+      
+      this.commStation = this.add.sprite(800, 500, 'comm_station_offline').setDepth(5).setVisible(false);
+      this.physics.add.existing(this.commStation, true);
+      this.physics.add.collider(this.player.getSprite(), this.commStation);
+      
+      const anomPos = [[500, 800], [1100, 800], [800, 200]];
       for (let i = 0; i < store.anomaliesTotal; i++) {
-        const anomaly = this.anomaliesGroup.create(Phaser.Math.Between(300, 1300), Phaser.Math.Between(300, 900), 'anomaly');
+        const anomaly = this.anomaliesGroup.create(anomPos[i][0], anomPos[i][1], 'anomaly');
         anomaly.setDepth(5).setTint(0xa855f7).setAlpha(0.8);
         this.physics.add.existing(anomaly, true);
       }
-      this.astraChamber = this.add.sprite(1400, 1000, 'astra_chamber').setDepth(5).setTint(0x22d3ee).setVisible(false);
-      this.physics.add.existing(this.astraChamber, true);
       
-      // Hide comm station initially
-      this.commStation.setVisible(false);
+      this.astraChamber = this.add.sprite(800, 100, 'astra_chamber').setDepth(5).setTint(0x22d3ee).setVisible(false);
+      this.physics.add.existing(this.astraChamber, true);
     }
 
     // 5. Setup Input
@@ -121,6 +149,9 @@ export default class GameScene extends Phaser.Scene {
     // Deployment Previews
     this.deployPreview = this.add.sprite(0, 0, 'robot_standard').setAlpha(0.5).setDepth(20).setVisible(false).setScale(0.12);
     this.deployRadius = this.add.graphics().setDepth(19).setVisible(false);
+
+    // Objective Marker
+    this.objectiveMarker = this.add.graphics().setDepth(20).setVisible(false);
 
     // Deployment Click Handler
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
@@ -173,26 +204,59 @@ export default class GameScene extends Phaser.Scene {
     } else {
       // Check colonists
       let foundInteractable = false;
+      let nearestObj: any = null;
+      let minObjDist = 9999;
+
       this.colonistsGroup.getChildren().forEach((c: any) => {
-        if (!foundInteractable && c.active && Phaser.Math.Distance.Between(p.x, p.y, c.x, c.y) < 50) {
+        if (!c.active) return;
+        const d = Phaser.Math.Distance.Between(p.x, p.y, c.x, c.y);
+        if (d < minObjDist) { minObjDist = d; nearestObj = c; }
+        if (!foundInteractable && d < 50) {
           canInteract = true; promptText = '[SPACE] RESCUE COLONIST'; foundInteractable = true;
         }
       });
 
-      if (!foundInteractable) {
-        this.dataTerminalsGroup.getChildren().forEach((t: any) => {
-          if (!foundInteractable && t.active && Phaser.Math.Distance.Between(p.x, p.y, t.x, t.y) < 60) {
-            canInteract = true; promptText = '[SPACE] DOWNLOAD DATA'; foundInteractable = true;
-          }
-        });
-      }
+      this.dataTerminalsGroup.getChildren().forEach((t: any) => {
+        if (!t.active) return;
+        const d = Phaser.Math.Distance.Between(p.x, p.y, t.x, t.y);
+        if (d < minObjDist) { minObjDist = d; nearestObj = t; }
+        if (!foundInteractable && d < 60) {
+          canInteract = true; promptText = '[SPACE] DOWNLOAD DATA'; foundInteractable = true;
+        }
+      });
 
-      if (!foundInteractable) {
-        this.anomaliesGroup.getChildren().forEach((a: any) => {
-          if (!foundInteractable && a.active && Phaser.Math.Distance.Between(p.x, p.y, a.x, a.y) < 60) {
-            canInteract = true; promptText = '[SPACE] INVESTIGATE ANOMALY'; foundInteractable = true;
-          }
-        });
+      this.anomaliesGroup.getChildren().forEach((a: any) => {
+        if (!a.active) return;
+        const d = Phaser.Math.Distance.Between(p.x, p.y, a.x, a.y);
+        if (d < minObjDist) { minObjDist = d; nearestObj = a; }
+        if (!foundInteractable && d < 60) {
+          canInteract = true; promptText = '[SPACE] INVESTIGATE ANOMALY'; foundInteractable = true;
+        }
+      });
+
+      // Point arrow to nearest objective if too far
+      this.objectiveMarker.clear();
+      if (!canInteract && nearestObj && minObjDist > 300) {
+        const angle = Phaser.Math.Angle.Between(p.x, p.y, nearestObj.x, nearestObj.y);
+        const arrowDist = 80;
+        const arrowX = p.x + Math.cos(angle) * arrowDist;
+        const arrowY = p.y + Math.sin(angle) * arrowDist;
+        
+        this.objectiveMarker.lineStyle(2, 0x22d3ee, 0.8);
+        this.objectiveMarker.fillStyle(0x22d3ee, 0.8);
+        
+        // Draw simple line pointing to target
+        this.objectiveMarker.beginPath();
+        this.objectiveMarker.moveTo(p.x, p.y);
+        this.objectiveMarker.lineTo(arrowX, arrowY);
+        
+        // Draw circle at end of pointer
+        this.objectiveMarker.fillCircle(arrowX, arrowY, 6);
+        this.objectiveMarker.strokePath();
+        
+        this.objectiveMarker.setVisible(true);
+      } else {
+        this.objectiveMarker.setVisible(false);
       }
     }
 
@@ -236,19 +300,22 @@ export default class GameScene extends Phaser.Scene {
     // Sync Visuals from Simulation State
     Object.values(store.robots).forEach((robot: Robot) => {
       let sprite = this.robotsMap.get(robot.id) as Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
+      let ui = this.robotUIMap.get(robot.id);
       
       if (robot.state === 'destroyed') {
         if (sprite) {
           // Explosion effect
           const emitter = this.add.particles(sprite.x, sprite.y, 'storm_particle', {
-            speed: { min: 50, max: 150 },
-            scale: { start: 1, end: 0 },
-            lifespan: 500,
+            speed: { min: 50, max: 200 },
+            scale: { start: 0.5, end: 0 },
+            lifespan: 600,
             blendMode: 'ADD'
           });
-          emitter.explode(20);
+          emitter.explode(30);
           sprite.destroy();
+          if (ui) ui.destroy();
           this.robotsMap.delete(robot.id);
+          this.robotUIMap.delete(robot.id);
         }
         return;
       }
@@ -260,19 +327,50 @@ export default class GameScene extends Phaser.Scene {
         if (robot.subType === 'shield') tex = 'robot_shield';
 
         sprite = this.physics.add.sprite(robot.x, robot.y, tex).setDepth(8);
-        // Scale appropriately
         sprite.setScale(0.12);
         this.robotsMap.set(robot.id, sprite);
+
+        ui = this.add.container(robot.x, robot.y).setDepth(9);
+        const shadow = this.add.graphics();
+        shadow.fillStyle(0x000000, 0.4);
+        shadow.fillEllipse(0, 20, 40, 15);
+        
+        const healthBg = this.add.graphics();
+        healthBg.fillStyle(0x000000, 0.8);
+        healthBg.fillRect(-20, -30, 40, 4);
+        
+        const healthBar = this.add.graphics();
+        healthBar.setName('health');
+        
+        ui.add([shadow, healthBg, healthBar]);
+        this.robotUIMap.set(robot.id, ui);
       }
       
+      // Update UI
+      if (ui) {
+        ui.setPosition(sprite.x, sprite.y);
+        const healthBar = ui.getByName('health') as Phaser.GameObjects.Graphics;
+        healthBar.clear();
+        healthBar.fillStyle(robot.state === 'rogue' ? 0xef4444 : 0x10b981, 1);
+        healthBar.fillRect(-20, -30, 40 * (robot.health / robot.maxHealth), 4);
+      }
+      
+      // Animation & bobbing
+      const speed = sprite.body.velocity.length();
+      if (speed > 5) {
+        sprite.scaleY = 0.12 * (1 + Math.sin(this.time.now / 50) * 0.1);
+      } else {
+        sprite.scaleY = 0.12;
+      }
+
       if (robot.state === 'rogue') {
-        // Programmatic corruption effects
         sprite.setTint(0xff5555); // Reddish/purple tint
         if (Math.random() < 0.1) {
           sprite.setAlpha(Phaser.Math.FloatBetween(0.5, 1)); // flicker
+          // Glitch particle
+          if (Math.random() < 0.2) this.add.circle(sprite.x + Phaser.Math.Between(-20, 20), sprite.y + Phaser.Math.Between(-20, 20), 2, 0xff00ff).setDepth(20).setAlpha(0.8);
         }
         
-        // Simple wander/chase AI for rogue
         const p = this.player.getSprite();
         if (Phaser.Math.Distance.Between(sprite.x, sprite.y, p.x, p.y) < 300) {
           this.physics.moveToObject(sprite, p, 100);
@@ -291,7 +389,7 @@ export default class GameScene extends Phaser.Scene {
       }
     });
 
-    // Handle Projectile Overlaps
+    // Handle Projectile Overlaps & Combat FX
     this.robotsMap.forEach((projSprite, projId) => {
       const projState = store.robots[projId];
       if (projState && projState.type === 'projectile' && projState.state !== 'destroyed') {
@@ -302,6 +400,10 @@ export default class GameScene extends Phaser.Scene {
               // HIT!
               store.damageRobot(targetId, 50); // Emp does 50 damage
               store.damageRobot(projId, 999); // Destroy projectile
+              
+              // Hit flash
+              targetSprite.setTint(0xffffff);
+              this.time.delayedCall(50, () => targetSprite.clearTint());
             }
           }
         });
@@ -309,17 +411,21 @@ export default class GameScene extends Phaser.Scene {
     });
 
     // Storm particle effects (visual only, dense in certain areas)
-    if (Math.random() < 0.3) {
-      const px = this.cameras.main.scrollX + Phaser.Math.Between(0, 800);
-      const py = this.cameras.main.scrollY + Phaser.Math.Between(0, 600);
-      const particle = this.add.image(px, py, 'storm_particle').setAlpha(Phaser.Math.FloatBetween(0.3, 0.8)).setDepth(20);
+    if (Math.random() < 0.5) {
+      const px = this.cameras.main.scrollX + Phaser.Math.Between(0, 1000);
+      const py = this.cameras.main.scrollY + Phaser.Math.Between(0, 800);
+      const isDangerous = Math.random() < 0.2; // Purple arcs
+      const color = isDangerous ? 0xa855f7 : 0xffffff;
+      
+      const particle = this.add.circle(px, py, isDangerous ? 3 : 1, color).setAlpha(Phaser.Math.FloatBetween(0.3, 0.8)).setDepth(20);
       
       this.tweens.add({
         targets: particle,
-        x: px - 100,
-        y: py + 50,
+        x: px - 150,
+        y: py + 100,
         alpha: 0,
-        duration: 2000,
+        duration: isDangerous ? 1000 : 2500,
+        ease: 'Cubic.easeOut',
         onComplete: () => particle.destroy()
       });
     }
@@ -353,9 +459,28 @@ export default class GameScene extends Phaser.Scene {
     if (this.astraChamber?.visible && !store.astraFound) {
       if (Phaser.Math.Distance.Between(pSprite.x, pSprite.y, this.astraChamber.x, this.astraChamber.y) < 80) {
         store.findAstra();
-        const text = this.add.text(this.astraChamber.x, this.astraChamber.y - 60, 'ASTRA SIGNAL LOCKED. SHE IS ALIVE.', { color: '#a855f7', fontSize: '20px', fontStyle: 'bold' }).setOrigin(0.5);
-        this.tweens.add({ targets: text, y: text.y - 30, alpha: 0, duration: 3000, onComplete: () => text.destroy() });
-        this.checkMissionComplete();
+        
+        // Dramatic sequence
+        this.cameras.main.flash(2000, 168, 85, 247); // Purple flash
+        const t1 = this.add.text(800, 400, 'SIGNAL LOCKED', { color: '#a855f7', fontSize: '32px', fontStyle: 'black' }).setOrigin(0.5).setScrollFactor(0);
+        
+        this.time.delayedCall(1500, () => {
+          t1.setText('ASTRA\nLOCATION CONFIRMED');
+          this.cameras.main.shake(500, 0.01);
+        });
+        
+        this.time.delayedCall(3500, () => {
+          t1.setText("SHE'S ALIVE.");
+          t1.setFontSize(48);
+          t1.setColor('#ffffff');
+          this.cameras.main.flash(1000, 255, 255, 255);
+        });
+        
+        this.time.delayedCall(6000, () => {
+          t1.destroy();
+          this.checkMissionComplete();
+        });
+        
         return;
       }
     }
@@ -427,16 +552,21 @@ export default class GameScene extends Phaser.Scene {
     }
 
     if (complete && store.missionStatus === 'active') {
-      store.missionStatus = 'success'; // prevent multiple triggers
+      // prevent multiple triggers without fully completing zustand store yet
+      (store as any).missionStatus = 'success'; // Bypass for local pause
       
       // Dramatic flash
-      this.cameras.main.flash(1000, 255, 255, 255);
-      const text = this.add.text(800, 400, 'MISSION COMPLETE', { color: '#ffffff', fontSize: '64px', fontStyle: 'black' }).setOrigin(0.5).setDepth(100);
+      this.cameras.main.flash(500, 255, 255, 255);
+      
+      const text = this.add.text(800, 300, '✓ OBJECTIVES COMPLETE', { color: '#34d399', fontSize: '48px', fontStyle: 'black' }).setOrigin(0.5).setDepth(100);
       text.setScrollFactor(0);
       
-      setTimeout(() => {
+      const sub = this.add.text(800, 360, 'COMMUNICATIONS RESTORED', { color: '#22d3ee', fontSize: '24px', fontStyle: 'bold' }).setOrigin(0.5).setDepth(100);
+      sub.setScrollFactor(0);
+      
+      this.time.delayedCall(3000, () => {
         store.completeMission('success');
-      }, 2000);
+      });
     }
   }
 }

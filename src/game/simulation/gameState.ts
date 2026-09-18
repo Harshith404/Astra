@@ -47,7 +47,7 @@ export interface GameState {
   updateRobot: (id: string, partial: Partial<Robot>) => void;
   addRobot: (robot: Robot) => void;
   useEnergy: (amount: number) => boolean;
-  completeMission: (status: 'success' | 'failure') => void;
+  completeMission: (status: 'success' | 'failure' | 'active') => void;
 
   // Player actions from UI
   setDeploymentMode: (type: 'standard' | 'repair' | 'heavy' | 'shield' | null) => void;
@@ -57,7 +57,7 @@ export interface GameState {
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
-  missionTimeLeft: 120, // seconds
+  missionTimeLeft: 300, // seconds
   colonistsRescued: 0,
   colonistsTotal: 10,
   dataRecovered: 0,
@@ -66,7 +66,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   anomaliesTotal: 0,
   astraFound: false,
   robotsRecovered: 0,
-  missionEnergy: 85,
+  missionEnergy: 100,
   maxMissionEnergy: 100,
   communicationsRestored: false,
   missionStatus: 'briefing',
