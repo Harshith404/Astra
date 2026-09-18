@@ -63,18 +63,25 @@ export default class GameScene extends Phaser.Scene {
 
     // 3. Initialize level data into Zustand Simulation (Bridge)
     const store = useGameStore.getState();
-    store.currentLevelId = data.levelId;
-    store.missionTimeLeft = config.timeLimit;
-    store.colonistsTotal = config.totalColonists;
-    store.dataTotal = data.levelId === 'level-2' ? 3 : 0;
-    store.anomaliesTotal = data.levelId === 'level-3' ? 3 : 0;
-    store.missionStatus = 'active';
-    store.communicationsRestored = false;
-    store.colonistsRescued = 0;
-    store.dataRecovered = 0;
-    store.anomaliesInvestigated = 0;
-    store.astraFound = false;
-    store.robots = {}; // Clear old
+    useGameStore.setState({
+      currentLevelId: data.levelId,
+      missionTimeLeft: config.timeLimit,
+      colonistsTotal: config.totalColonists,
+      dataTotal: config.dataTotal,
+      anomaliesTotal: data.levelId === 'level-3' ? 3 : 0,
+      missionStatus: 'briefing',  // Show briefing first, DEPLOY activates
+      communicationsRestored: false,
+      colonistsRescued: 0,
+      dataRecovered: 0,
+      anomaliesInvestigated: 0,
+      astraFound: false,
+      robots: {},
+      missionComplete: false,
+      briefing: true,
+      robotsDeployed: 0,
+      robotsLost: 0,
+      missionEnergy: config.startingEnergy,
+    });
     this.robotsMap.clear();
     this.robotUIMap.clear();
     

@@ -10,6 +10,8 @@ export interface LevelConfig {
   stormIntensity: 'low' | 'medium' | 'high' | 'extreme';
   objectiveText: string;
   difficulty: string;
+  startingEnergy: number;
+  dataTotal: number;
 }
 
 export const CAMPAIGN_MISSIONS: LevelConfig[] = [
@@ -19,6 +21,8 @@ export const CAMPAIGN_MISSIONS: LevelConfig[] = [
     description: 'Mining / Habitat Outpost. Restore comms and rescue personnel.',
     timeLimit: 120,
     totalColonists: 8,
+    startingEnergy: 100,
+    dataTotal: 0,
     stormIntensity: 'medium',
     objectiveText: 'RESCUE TRAPPED COLONISTS AND RESTORE COMMS',
     difficulty: 'MEDIUM',
@@ -34,6 +38,8 @@ export const CAMPAIGN_MISSIONS: LevelConfig[] = [
     description: 'Research Facility. Recover research data and rescue scientists.',
     timeLimit: 180,
     totalColonists: 10,
+    startingEnergy: 100,
+    dataTotal: 3,
     stormIntensity: 'high',
     objectiveText: 'RECOVER DATA, RESCUE SCIENTISTS, RESTORE COMMS',
     difficulty: 'HARD',
@@ -50,6 +56,8 @@ export const CAMPAIGN_MISSIONS: LevelConfig[] = [
     description: 'Unknown Underground Structure. Investigate anomaly and locate Astra.',
     timeLimit: 240,
     totalColonists: 5,
+    startingEnergy: 100,
+    dataTotal: 0,
     stormIntensity: 'extreme',
     objectiveText: 'INVESTIGATE ANOMALY. RESTORE RELAY. FIND ASTRA.',
     difficulty: 'ASTRA',
