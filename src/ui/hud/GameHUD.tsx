@@ -1,14 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useGameStore } from '../../game/simulation/gameState';
-import { Battery, Zap, Radio, Users, Clock, AlertTriangle } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { Zap, Users, Clock, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function GameHUD({ levelId }: { levelId: string }) {
   const store = useGameStore();
-  const router = useRouter();
   const [results, setResults] = useState<{
     awardedBatteries: number;
     awardedSupport: number;
@@ -19,8 +17,8 @@ export default function GameHUD({ levelId }: { levelId: string }) {
 
   // moved down
 
-  const handleMissionEnd = async (success: boolean) => {
-    // Only fire once
+  const handleMissionEnd = useCallback(async (success: boolean) => {
+    // Only process once
     if (results) return;
 
     const survivors = store.colonistsRescued;
@@ -55,24 +53,63 @@ export default function GameHUD({ levelId }: { levelId: string }) {
         awardedSupport: 0,
       });
     }
-  };
+  }, [results, store.colonistsRescued, store.missionTimeLeft, levelId]);
 
   useEffect(() => {
-    if (store.missionStatus === 'success') {
-      handleMissionEnd(true);
-    } else if (store.missionStatus === 'failure') {
-      handleMissionEnd(false);
+    if (store.missionStatus === 'success' && !results) {
+      setTimeout(() => handleMissionEnd(true), 0);
+    } else if (store.missionStatus === 'failure' && !results) {
+      setTimeout(() => handleMissionEnd(false), 0);
     }
-  }, [store.missionStatus, results]); // added results to deps to silence exhaustive-deps warning
+  }, [store.missionStatus, results, handleMissionEnd]);
 
   if (store.cinematicPlaying) {
     return (
       <div className="absolute inset-0 z-[100] bg-black flex items-center justify-center pointer-events-auto">
-        <div className="flex flex-col items-center gap-12 font-mono tracking-[0.5em] text-white animate-pulse">
-          <span className="text-sm opacity-50">SIGNAL LOCKED</span>
-          <h1 className="text-6xl font-black text-neon-cyan tracking-[0.2em] shadow-lg">ASTRA</h1>
-          <span className="text-emerald-400">LOCATION CONFIRMED</span>
-          <span className="text-xl mt-8 tracking-widest text-white/80">SHE'S ALIVE</span>
+        <div className="flex flex-col items-center gap-12 font-mono tracking-[0.5em] text-white">
+          <style>{`
+            @keyframes cinematicFade { 0% { opacity: 0; } 100% { opacity: 1; } }
+            .c-fade { animation: cinematicFade 2s forwards; opacity: 0; }
+            .c-delay-1 { animation-delay: 1s; }
+            .c-delay-2 { animation-delay: 3s; }
+            .c-delay-3 { animation-delay: 5s; }
+            .c-delay-4 { animation-delay: 7s; }
+            .c-delay-5 { animation-delay: 10s; }
+          `}</style>
+          
+          {/* Text Sequence */}
+          <div className="flex flex-col items-center gap-8 absolute top-1/3">
+            <span className="text-sm opacity-50 c-fade c-delay-1">SIGNAL LOCKED</span>
+            <h1 className="text-6xl font-black text-neon-cyan tracking-[0.2em] shadow-lg c-fade c-delay-2">ASTRA</h1>
+            <span className="text-emerald-400 c-fade c-delay-3">LOCATION CONFIRMED</span>
+            <span className="text-2xl mt-8 tracking-widest text-white/80 animate-pulse c-fade c-delay-4">SHE&apos;S ALIVE</span>
+          </div>
+
+          {/* Final Story Card */}
+          <div className="game-hud-panel border-l-4 border-l-neon-cyan bg-black/90 p-10 flex flex-col gap-6 c-fade c-delay-5 z-10 w-[500px]">
+            <div className="border-b border-mars-900 pb-4">
+              <h2 className="text-4xl font-black text-white tracking-widest">ASTRA-1</h2>
+              <span className="text-neon-cyan text-sm tracking-[0.2em]">EMERGENCY PROTECTOR</span>
+            </div>
+            <div className="flex flex-col gap-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-mars-400">STATUS:</span>
+                <span className="text-emerald-400 font-bold">ALIVE</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-mars-400">LOCATION:</span>
+                <span className="text-white">UNKNOWN STRUCTURE — MARS</span>
+              </div>
+              <div className="flex justify-between mt-4 border-t border-mars-900 pt-4">
+                <span className="text-mars-400">MISSION STATUS:</span>
+                <span className="text-neon-cyan font-bold animate-pulse">SIGNAL ACQUIRED</span>
+              </div>
+            </div>
+            
+            <Link href="/missions" className="mt-8 w-full bg-mars-700 hover:bg-mars-500 py-4 font-black tracking-widest text-white transition-colors border border-mars-500 text-center text-sm block">
+              [ RETURN TO COMMAND ]
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -110,58 +147,6 @@ export default function GameHUD({ levelId }: { levelId: string }) {
             <div className="flex justify-between border-b border-mars-900 pb-2">
               <span>COMMUNICATIONS</span>
               <span className="font-bold text-mars-50">{store.communicationsRestored ? 'RESTORED' : 'OFFLINE'}</span>
-            </div>
-            <div className="game-hud-panel border-l-4 border-l-mars-500">
-              <h2 className="text-xs font-black tracking-widest text-mars-400 mb-2">OBJECTIVES</h2>
-              <div className="flex flex-col gap-1 text-[10px] font-mono uppercase tracking-wide">
-                
-                {/* Rescue Colonists */}
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 border ${store.colonistsRescued === store.colonistsTotal ? 'bg-emerald-400 border-emerald-400' : 'border-mars-500'}`} />
-                  <span className={store.colonistsRescued === store.colonistsTotal ? 'text-emerald-400 line-through opacity-50' : 'text-mars-100'}>
-                    RESCUE COLONISTS ({store.colonistsRescued}/{store.colonistsTotal})
-                  </span>
-                </div>
-
-                {/* Data Terminals (Level 2) */}
-                {store.dataTotal > 0 && (
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 border ${store.dataRecovered === store.dataTotal ? 'bg-emerald-400 border-emerald-400' : 'border-mars-500'}`} />
-                    <span className={store.dataRecovered === store.dataTotal ? 'text-emerald-400 line-through opacity-50' : 'text-mars-100'}>
-                      RECOVER DATA ({store.dataRecovered}/{store.dataTotal})
-                    </span>
-                  </div>
-                )}
-
-                {/* Anomalies (Level 3) */}
-                {store.anomaliesTotal > 0 && (
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 border ${store.anomaliesInvestigated === store.anomaliesTotal ? 'bg-emerald-400 border-emerald-400' : 'border-mars-500'}`} />
-                    <span className={store.anomaliesInvestigated === store.anomaliesTotal ? 'text-emerald-400 line-through opacity-50' : 'text-mars-100'}>
-                      INVESTIGATE ANOMALY ({store.anomaliesInvestigated}/{store.anomaliesTotal})
-                    </span>
-                  </div>
-                )}
-
-                {/* Restore Comms/Relay */}
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 border ${store.communicationsRestored ? 'bg-emerald-400 border-emerald-400' : 'border-mars-500'}`} />
-                  <span className={store.communicationsRestored ? 'text-emerald-400 line-through opacity-50' : 'text-mars-100'}>
-                    {store.anomaliesTotal > 0 ? 'RESTORE RELAY' : 'RESTORE COMMS'}
-                  </span>
-                </div>
-
-                {/* Astra Signal (Level 3) */}
-                {store.anomaliesTotal > 0 && (
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 border ${store.astraFound ? 'bg-emerald-400 border-emerald-400' : 'border-mars-500'}`} />
-                    <span className={store.astraFound ? 'text-emerald-400 line-through opacity-50' : (store.anomaliesInvestigated === store.anomaliesTotal ? 'text-neon-cyan animate-pulse' : 'text-mars-100 opacity-30')}>
-                      LOCATE ASTRA
-                    </span>
-                  </div>
-                )}
-
-              </div>
             </div>
             <div className="flex justify-between border-b border-mars-900 pb-2">
               <span>TIME REMAINING</span>
@@ -245,57 +230,65 @@ export default function GameHUD({ levelId }: { levelId: string }) {
     <div className="absolute inset-0 pointer-events-none p-6 flex flex-col justify-between z-10">
       {/* Top Bar */}
       <div className="flex justify-between items-start">
-        <div className="game-hud-panel border-l-4 border-l-mars-500 bg-black/80 backdrop-blur pointer-events-auto">
-          <h2 className="text-xs font-black tracking-widest text-mars-400 mb-2">OBJECTIVES</h2>
-          <div className="flex flex-col gap-1 text-[10px] font-mono uppercase tracking-wide">
+        <div className="game-hud-panel border-l-4 border-l-mars-500 bg-black/80 backdrop-blur pointer-events-auto p-4 flex flex-col gap-1 min-w-[200px]">
+          <h2 className="text-[10px] font-black tracking-[0.2em] text-mars-400">CURRENT OBJECTIVE</h2>
+          
+          {(() => {
+            let currentObjective = '';
+            let currentProgress = '';
             
-            {/* Rescue Colonists */}
-            <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 border ${store.colonistsRescued === store.colonistsTotal ? 'bg-emerald-400 border-emerald-400' : 'border-mars-500'}`} />
-              <span className={store.colonistsRescued === store.colonistsTotal ? 'text-emerald-400 line-through opacity-50' : 'text-mars-100'}>
-                RESCUE COLONISTS ({store.colonistsRescued}/{store.colonistsTotal})
-              </span>
-            </div>
+            if (levelId === 'level-1') {
+              if (store.colonistsRescued < store.colonistsTotal) {
+                currentObjective = 'RESCUE COLONISTS';
+                currentProgress = `${store.colonistsRescued} / ${store.colonistsTotal}`;
+              } else if (!store.communicationsRestored) {
+                currentObjective = 'RESTORE COMMUNICATIONS';
+                currentProgress = 'OFFLINE';
+              } else {
+                currentObjective = 'OBJECTIVES COMPLETE';
+                currentProgress = 'STANDBY';
+              }
+            } else if (levelId === 'level-2') {
+              if (store.colonistsRescued < store.colonistsTotal) {
+                currentObjective = 'LOCATE SCIENTISTS';
+                currentProgress = `${store.colonistsRescued} / ${store.colonistsTotal}`;
+              } else if (store.dataRecovered < store.dataTotal) {
+                currentObjective = 'RECOVER DATA';
+                currentProgress = `${store.dataRecovered} / ${store.dataTotal}`;
+              } else if (!store.communicationsRestored) {
+                currentObjective = 'RESTORE COMMUNICATIONS';
+                currentProgress = 'OFFLINE';
+              } else {
+                currentObjective = 'OBJECTIVES COMPLETE';
+                currentProgress = 'STANDBY';
+              }
+            } else if (levelId === 'level-3') {
+              if (store.anomaliesInvestigated < store.anomaliesTotal) {
+                currentObjective = 'INVESTIGATE ANOMALY';
+                currentProgress = `${store.anomaliesInvestigated} / ${store.anomaliesTotal}`;
+              } else if (!store.communicationsRestored) {
+                currentObjective = 'RESTORE RELAY';
+                currentProgress = 'OFFLINE';
+              } else if (!store.astraFound) {
+                currentObjective = 'LOCATE ASTRA';
+                currentProgress = 'SIGNAL DETECTED';
+              } else {
+                currentObjective = 'OBJECTIVES COMPLETE';
+                currentProgress = 'STANDBY';
+              }
+            }
 
-            {/* Data Terminals (Level 2) */}
-            {store.dataTotal > 0 && (
-              <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 border ${store.dataRecovered === store.dataTotal ? 'bg-emerald-400 border-emerald-400' : 'border-mars-500'}`} />
-                <span className={store.dataRecovered === store.dataTotal ? 'text-emerald-400 line-through opacity-50' : 'text-mars-100'}>
-                  RECOVER DATA ({store.dataRecovered}/{store.dataTotal})
+            return (
+              <>
+                <span className={`font-mono text-sm tracking-wide ${currentObjective === 'OBJECTIVES COMPLETE' ? 'text-emerald-400' : 'text-mars-50'}`}>
+                  {currentObjective}
                 </span>
-              </div>
-            )}
-
-            {/* Anomalies (Level 3) */}
-            {store.anomaliesTotal > 0 && (
-              <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 border ${store.anomaliesInvestigated === store.anomaliesTotal ? 'bg-emerald-400 border-emerald-400' : 'border-mars-500'}`} />
-                <span className={store.anomaliesInvestigated === store.anomaliesTotal ? 'text-emerald-400 line-through opacity-50' : 'text-mars-100'}>
-                  INVESTIGATE ANOMALY ({store.anomaliesInvestigated}/{store.anomaliesTotal})
+                <span className={`font-mono text-xs font-bold ${currentObjective === 'OBJECTIVES COMPLETE' ? 'text-emerald-400' : 'text-neon-cyan'}`}>
+                  {currentProgress}
                 </span>
-              </div>
-            )}
-
-            {/* Restore Comms/Relay */}
-            <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 border ${store.communicationsRestored ? 'bg-emerald-400 border-emerald-400' : 'border-mars-500'}`} />
-              <span className={store.communicationsRestored ? 'text-emerald-400 line-through opacity-50' : 'text-mars-100'}>
-                {store.anomaliesTotal > 0 ? 'RESTORE RELAY' : 'RESTORE COMMS'}
-              </span>
-            </div>
-
-            {/* Astra Signal (Level 3) */}
-            {store.anomaliesTotal > 0 && (
-              <div className="flex items-center gap-2">
-                <div className={`w-3 h-3 border ${store.astraFound ? 'bg-emerald-400 border-emerald-400' : 'border-mars-500'}`} />
-                <span className={store.astraFound ? 'text-emerald-400 line-through opacity-50' : (store.anomaliesInvestigated === store.anomaliesTotal ? 'text-neon-cyan animate-pulse' : 'text-mars-100 opacity-30')}>
-                  LOCATE ASTRA
-                </span>
-              </div>
-            )}
-
-          </div>
+              </>
+            );
+          })()}
         </div>
 
         <div className="game-hud-panel flex flex-col items-center gap-1 pointer-events-auto">

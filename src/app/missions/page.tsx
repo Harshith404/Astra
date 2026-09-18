@@ -141,6 +141,32 @@ export default function MissionsPage() {
             </Link>
           );
         })}
+
+        {/* Astra Signal Reveal Node (Appears only if Level 3 is completed) */}
+        {(() => {
+          const l3Prog = getProgress('level-3');
+          if (l3Prog?.completed) {
+            return (
+              <div className="absolute z-30 flex flex-col items-center" style={{ left: '50%', top: '5%', transform: 'translate(-50%, -50%)' }}>
+                <div className="w-1 bg-neon-cyan/50 animate-pulse" style={{ height: '80px', position: 'absolute', top: '100%' }} />
+                <div className="flex items-center gap-4 animate-fade-in" style={{ animation: 'fade-in 2s forwards' }}>
+                  <div className="w-24 h-24 rounded-full border-4 border-neon-cyan bg-black flex items-center justify-center shadow-[0_0_40px_rgba(34,211,238,0.5)]">
+                    <Target className="text-neon-cyan" size={40} />
+                  </div>
+                  <div className="flex flex-col w-48 text-left">
+                    <span className="text-neon-cyan font-black tracking-[0.3em] text-2xl drop-shadow-md">
+                      ASTRA
+                    </span>
+                    <span className="font-mono text-sm text-emerald-400 font-bold">
+                      ✓ SIGNAL ACQUIRED
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+          return null;
+        })()}
       </div>
     </main>
   );

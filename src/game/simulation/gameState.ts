@@ -51,7 +51,7 @@ export interface GameState {
   recoverRobot: () => void;
   updateRobot: (id: string, partial: Partial<Robot>) => void;
   addRobot: (robot: Robot) => void;
-  useEnergy: (amount: number) => boolean;
+  consumeEnergy: (amount: number) => boolean;
   completeMission: (status: 'success' | 'failure' | 'active') => void;
   startSimulation: (config?: any) => void;
   updateSimulation: (time: number, delta: number) => void;
@@ -86,11 +86,11 @@ export const useGameStore = create<GameState>((set, get) => ({
   setDeploymentMode: (type) => set({ deploymentMode: type as any }),
 
   deployRobot: (type, x, y) => {
-    const { useEnergy, addRobot } = get();
+    const { consumeEnergy, addRobot } = get();
     const costs: Record<string, number> = { standard: 10, repair: 25, heavy: 40, shield: 30 };
     const cost = costs[type] || 20;
 
-    if (useEnergy(cost)) {
+    if (consumeEnergy(cost)) {
       const id = `${type}_${Date.now()}`;
       addRobot({
         id,
@@ -166,7 +166,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     robots: { ...state.robots, [robot.id]: robot }
   })),
 
-  useEnergy: (amount) => {
+  consumeEnergy: (amount) => {
     const { missionEnergy } = get();
     if (missionEnergy >= amount) {
       set({ missionEnergy: missionEnergy - amount });
@@ -228,8 +228,8 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   // Player actions from UI (Phaser logic will listen for these or process them in systems)
   repairRobot: (id) => {
-    const { useEnergy, updateRobot } = get();
-    if (useEnergy(20)) {
+    const { consumeEnergy, updateRobot } = get();
+    if (consumeEnergy(20)) {
       updateRobot(id, { corruption: Math.max(0, get().robots[id].corruption - 50) });
     }
   }
