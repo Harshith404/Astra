@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
 import BootScene from './scenes/BootScene';
 import GameScene from './scenes/GameScene';
@@ -10,43 +10,41 @@ interface PhaserGameProps {
 }
 
 export default function PhaserGame({ levelId }: PhaserGameProps) {
-  const gameRef = useRef<HTMLDivElement>(null);
-  const [game, setGame] = useState<Phaser.Game | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && !gameRef.current?.hasChildNodes()) {
-      const config: Phaser.Types.Core.GameConfig = {
-        type: Phaser.AUTO,
-        parent: gameRef.current!,
-        width: 800,
-        height: 600,
-        backgroundColor: '#450a0a',
-        physics: {
-          default: 'arcade',
-          arcade: {
-            debug: false,
-          },
-        },
-        scene: [BootScene, GameScene],
-      };
+    if (typeof window === 'undefined' || !containerRef.current) return;
+    if (containerRef.current.hasChildNodes()) return;
 
-      const newGame = new Phaser.Game(config);
-      newGame.registry.set('levelId', levelId);
-      setGame(newGame);
+    const config: Phaser.Types.Core.GameConfig = {
+      type: Phaser.AUTO,
+      parent: containerRef.current,
+      width: window.innerWidth,
+      height: window.innerHeight,
+      backgroundColor: '#1a0000',
+      scale: {
+        mode: Phaser.Scale.RESIZE,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+      },
+      physics: {
+        default: 'arcade',
+        arcade: { debug: false },
+      },
+      scene: [BootScene, GameScene],
+    };
 
-      return () => {
-        newGame.destroy(true);
-        setGame(null);
-      };
-    }
-  }, []);
+    const game = new Phaser.Game(config);
+    game.registry.set('levelId', levelId);
+
+    return () => {
+      game.destroy(true);
+    };
+  }, [levelId]);
 
   return (
-    <div className="flex justify-center items-center w-full h-full">
-      <div 
-        ref={gameRef} 
-        className="rounded-xl overflow-hidden shadow-[0_0_30px_rgba(239,68,68,0.3)] border-2 border-mars-700/50"
-      />
-    </div>
+    <div
+      ref={containerRef}
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+    />
   );
 }
