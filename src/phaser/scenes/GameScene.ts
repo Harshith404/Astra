@@ -85,10 +85,17 @@ export default class GameScene extends Phaser.Scene {
     this.anomaliesGroup = this.physics.add.group();
 
     if (data.levelId === 'level-1') {
-      // Outpost Delta - Scattered around central base
+      // Outpost Delta
       this.commStation = this.add.sprite(1200, 300, 'comm_station_offline').setDepth(5);
       this.physics.add.existing(this.commStation, true);
       this.physics.add.collider(this.player.getSprite(), this.commStation);
+
+      // Props
+      this.add.sprite(1000, 400, 'habitat_module').setDepth(4);
+      this.add.sprite(800, 800, 'habitat_module').setDepth(4);
+      this.add.sprite(1300, 400, 'storage_crate').setDepth(4);
+      this.add.sprite(1350, 420, 'storage_crate').setDepth(4).setAngle(15);
+      this.add.sprite(900, 750, 'storage_crate').setDepth(4);
 
       const colPos = [[900, 400], [1300, 500], [1000, 800], [700, 900], [1100, 200]];
       for (let i = 0; i < Math.min(config.totalColonists, colPos.length); i++) {
@@ -98,7 +105,6 @@ export default class GameScene extends Phaser.Scene {
     } 
     else if (data.levelId === 'level-2') {
       // Helios Lab - Modules
-      // Draw some floor panels to simulate a lab
       const graphics = this.add.graphics();
       graphics.fillStyle(0x1a202c, 0.8);
       graphics.lineStyle(2, 0x4a5568);
@@ -108,6 +114,12 @@ export default class GameScene extends Phaser.Scene {
       this.commStation = this.add.sprite(800, 250, 'comm_station_offline').setDepth(5);
       this.physics.add.existing(this.commStation, true);
       this.physics.add.collider(this.player.getSprite(), this.commStation);
+
+      // Props
+      this.add.sprite(500, 300, 'lab_terminal').setDepth(4);
+      this.add.sprite(600, 500, 'specimen_tube').setDepth(4);
+      this.add.sprite(700, 500, 'specimen_tube').setDepth(4);
+      this.add.sprite(1000, 700, 'lab_terminal').setDepth(4);
 
       const termPos = [[500, 400], [1100, 400], [800, 800]];
       for (let i = 0; i < store.dataTotal; i++) {
@@ -123,13 +135,18 @@ export default class GameScene extends Phaser.Scene {
       }
     }
     else if (data.levelId === 'level-3') {
-      // Buried Signal - Underground corridor
+      // Buried Signal
       this.cameras.main.setBackgroundColor('#000000');
       
       this.commStation = this.add.sprite(800, 500, 'comm_station_offline').setDepth(5).setVisible(false);
       this.physics.add.existing(this.commStation, true);
       this.physics.add.collider(this.player.getSprite(), this.commStation);
       
+      // Props
+      this.add.sprite(600, 400, 'energy_pillar').setDepth(4);
+      this.add.sprite(1000, 600, 'energy_pillar').setDepth(4);
+      this.add.sprite(700, 800, 'energy_pillar').setDepth(4);
+
       const anomPos = [[500, 800], [1100, 800], [800, 200]];
       for (let i = 0; i < store.anomaliesTotal; i++) {
         const anomaly = this.anomaliesGroup.create(anomPos[i][0], anomPos[i][1], 'anomaly');
@@ -322,9 +339,16 @@ export default class GameScene extends Phaser.Scene {
 
       if (!sprite) {
         let tex = 'robot_standard';
-        if (robot.subType === 'repair') tex = 'robot_repair';
-        if (robot.subType === 'heavy') tex = 'robot_heavy';
-        if (robot.subType === 'shield') tex = 'robot_shield';
+        
+        if (robot.state === 'rogue') {
+          if (robot.subType === 'heavy') tex = 'enemy_heavy';
+          else if (robot.subType === 'repair') tex = 'enemy_scout';
+          else tex = 'enemy_gunner';
+        } else {
+          if (robot.subType === 'repair') tex = 'robot_repair';
+          else if (robot.subType === 'heavy') tex = 'robot_heavy';
+          else if (robot.subType === 'shield') tex = 'robot_shield';
+        }
 
         sprite = this.physics.add.sprite(robot.x, robot.y, tex).setDepth(8);
         sprite.setScale(0.12);
@@ -364,7 +388,12 @@ export default class GameScene extends Phaser.Scene {
       }
 
       if (robot.state === 'rogue') {
-        sprite.setTint(0xff5555); // Reddish/purple tint
+        if (!sprite.getData('rogue_tinted')) {
+          sprite.setTint(0xff5555); // Reddish/purple tint
+          sprite.setScale(1); // the procedural rogue sprites don't need scaling down like the big PNGs
+          sprite.setData('rogue_tinted', true);
+        }
+        
         if (Math.random() < 0.1) {
           sprite.setAlpha(Phaser.Math.FloatBetween(0.5, 1)); // flicker
           // Glitch particle
