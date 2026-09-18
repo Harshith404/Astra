@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+@theme {
+  --color-mars-50: #fef2f2;
+  --color-mars-100: #fee2e2;
+  --color-mars-500: #ef4444;
+  --color-mars-700: #b91c1c;
+  --color-mars-900: #7f1d1d;
+  --color-mars-950: #450a0a;
+
+  --color-storm-400: #c084fc;
+  --color-storm-500: #a855f7;
+  --color-storm-600: #9333ea;
+  --color-storm-900: #581c87;
+
+  --color-neon-cyan: #22d3ee;
+  
+  --font-sans: "Inter", "Outfit", sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-mars-950 text-mars-50 overflow-hidden font-sans select-none;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+.game-hud-panel {
+  @apply bg-black/80 border border-mars-700/50 backdrop-blur-sm shadow-[0_0_15px_rgba(185,28,28,0.2)] rounded-lg p-4;
+}
+
+.storm-glow {
+  text-shadow: 0 0 10px var(--color-storm-500);
+}
+
+.text-glow-cyan {
+  text-shadow: 0 0 10px var(--color-neon-cyan);
+}
