@@ -1,13 +1,21 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useGameStore } from '../../game/simulation/gameState';
 import { Battery, Zap, Radio, Users, Clock, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
-export default function GameHUD() {
+export default function GameHUD({ levelId }: { levelId: string }) {
   const store = useGameStore();
   const router = useRouter();
+  const [results, setResults] = useState<{
+    awardedBatteries: number;
+    awardedSupport: number;
+    survivors: number;
+    timeString: string;
+    completed: boolean;
+  } | null>(null);
 
   useEffect(() => {
     if (store.missionStatus === 'success') {
@@ -18,26 +26,91 @@ export default function GameHUD() {
   }, [store.missionStatus]);
 
   const handleMissionEnd = async (success: boolean) => {
-    alert(success ? 'MISSION SUCCESS!' : 'MISSION FAILED.');
-    
+    // Only fire once
+    if (results) return;
+
+    const survivors = store.colonistsRescued;
+    const timeRemaining = store.missionTimeLeft;
+    const timeStr = `${Math.floor(timeRemaining / 60)}:${(timeRemaining % 60).toString().padStart(2, '0')}`;
+
     if (success) {
       try {
-        await fetch('/api/mission/complete', {
+        const res = await fetch('/api/mission/complete', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            levelId: 'level-1', 
-            rescued: store.colonistsRescued,
-            timeRemaining: store.missionTimeLeft
-          })
+          body: JSON.stringify({ levelId, rescued: survivors, timeRemaining })
+        });
+        const data = await res.json();
+        
+        setResults({
+          completed: true,
+          survivors,
+          timeString: timeStr,
+          awardedBatteries: data.awardedBatteries || 0,
+          awardedSupport: data.awardedSupport || 0,
         });
       } catch (err) {
         console.error("Failed to save progress", err);
       }
+    } else {
+      setResults({
+        completed: false,
+        survivors,
+        timeString: timeStr,
+        awardedBatteries: 0,
+        awardedSupport: 0,
+      });
     }
-    
-    router.push('/missions');
   };
+
+  if (results) {
+    return (
+      <div className="absolute inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center pointer-events-auto">
+        <div className="game-hud-panel max-w-md w-full flex flex-col gap-6 p-8 items-center text-center">
+          <h2 className={`text-3xl font-black tracking-[0.2em] ${results.completed ? 'text-emerald-400' : 'text-mars-500'}`}>
+            MISSION {results.completed ? 'COMPLETE' : 'FAILED'}
+          </h2>
+          
+          <div className="w-full flex flex-col gap-3 font-mono text-mars-100 text-sm">
+            <div className="flex justify-between border-b border-mars-900 pb-2">
+              <span>COLONISTS RESCUED</span>
+              <span className="font-bold text-mars-50">{results.survivors} / {store.colonistsTotal}</span>
+            </div>
+            <div className="flex justify-between border-b border-mars-900 pb-2">
+              <span>ROBOTS RECOVERED</span>
+              <span className="font-bold text-mars-50">0</span> {/* Hardcoded for MVP as requested */}
+            </div>
+            <div className="flex justify-between border-b border-mars-900 pb-2">
+              <span>COMMUNICATIONS</span>
+              <span className="font-bold text-mars-50">{store.communicationsRestored ? 'RESTORED' : 'OFFLINE'}</span>
+            </div>
+            <div className="flex justify-between border-b border-mars-900 pb-2">
+              <span>TIME REMAINING</span>
+              <span className="font-bold text-mars-50">{results.timeString}</span>
+            </div>
+            
+            <div className="flex justify-between mt-2 pt-2 border-t border-mars-500 text-lg">
+              <span className="text-neon-cyan flex items-center gap-2"><Users size={16}/> SUPPORT</span>
+              <span className="font-black text-neon-cyan">+{results.awardedSupport}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-neon-cyan flex items-center gap-2"><Zap size={16}/> BATTERIES</span>
+              <span className="font-black text-neon-cyan">+{results.awardedBatteries}</span>
+            </div>
+          </div>
+
+          <div className="flex gap-4 w-full mt-4">
+            <button onClick={() => window.location.reload()} className="flex-1 border border-mars-700 hover:bg-mars-900 py-3 font-bold tracking-widest transition-colors text-xs">
+              REPLAY
+            </button>
+            <Link href="/missions" className="flex-1 bg-mars-700 hover:bg-mars-500 py-3 font-bold tracking-widest transition-colors text-xs flex justify-center items-center">
+              CONTINUE
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (store.missionStatus !== 'active') return null;
 

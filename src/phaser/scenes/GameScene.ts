@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { useGameStore, Robot } from '../../game/simulation/gameState';
 import { updateSimulation } from '../../game/simulation/systems/gameLoop';
-import { level1 } from '../../game/content/levels/level1';
+import { getMissionConfig } from '../../game/content/missions';
 import { PlayerController } from '../../game/entities/Player';
 
 export default class GameScene extends Phaser.Scene {
@@ -16,16 +16,28 @@ export default class GameScene extends Phaser.Scene {
   }
 
   create(data: { levelId: string }) {
-    // 1. Setup Environment (Wider bounds)
+    const config = getMissionConfig(data.levelId);
+    
+    // 1. Setup Environment
     this.physics.world.setBounds(0, 0, 1600, 1200);
     this.cameras.main.setBounds(0, 0, 1600, 1200);
-    this.cameras.main.setBackgroundColor('#2a0606'); // dark mars atmosphere
-
-    // Draw terrain craters/details
-    for (let i = 0; i < 20; i++) {
-      const rx = Phaser.Math.Between(0, 1600);
-      const ry = Phaser.Math.Between(0, 1200);
-      this.add.circle(rx, ry, Phaser.Math.Between(20, 80), 0x000000, 0.2);
+    
+    if (data.levelId === 'level-1') {
+      const bg = this.add.image(800, 600, 'mars_terrain');
+      // Scale to fit 1600x1200 bounds approximately, keeping aspect ratio
+      const scaleX = 1600 / bg.width;
+      const scaleY = 1200 / bg.height;
+      bg.setScale(Math.max(scaleX, scaleY));
+      bg.setDepth(-10); // push it far back
+    } else {
+      this.cameras.main.setBackgroundColor('#2a0606'); // dark mars atmosphere
+      
+      // Draw procedural terrain craters/details only if no image
+      for (let i = 0; i < 20; i++) {
+        const rx = Phaser.Math.Between(0, 1600);
+        const ry = Phaser.Math.Between(0, 1200);
+        this.add.circle(rx, ry, Phaser.Math.Between(20, 80), 0x000000, 0.2).setDepth(-1);
+      }
     }
     
     // Add obstacles (Mars rocks)
@@ -43,14 +55,14 @@ export default class GameScene extends Phaser.Scene {
 
     // 3. Initialize level data into Zustand Simulation (Bridge)
     const store = useGameStore.getState();
-    store.missionTimeLeft = level1.timeLimit;
-    store.colonistsTotal = level1.totalColonists;
+    store.missionTimeLeft = config.timeLimit;
+    store.colonistsTotal = config.totalColonists;
     store.missionStatus = 'active';
     store.communicationsRestored = false;
     store.colonistsRescued = 0;
     store.robots = {}; // Clear old
     
-    level1.initialRobots.forEach(robot => store.addRobot(robot));
+    config.initialRobots.forEach(robot => store.addRobot(robot));
 
     // 4. Visual Representations (Adapters)
     this.commStation = this.add.sprite(1200, 300, 'comm_station_offline').setDepth(5);
@@ -58,7 +70,7 @@ export default class GameScene extends Phaser.Scene {
     this.physics.add.collider(this.player.getSprite(), this.commStation);
 
     this.colonistsGroup = this.physics.add.group();
-    for (let i = 0; i < level1.totalColonists; i++) {
+    for (let i = 0; i < config.totalColonists; i++) {
       const col = this.colonistsGroup.create(
         Phaser.Math.Between(800, 1400),
         Phaser.Math.Between(200, 800),

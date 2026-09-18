@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS players (
     username TEXT NOT NULL UNIQUE,
     support INTEGER NOT NULL DEFAULT 0,
     batteries INTEGER NOT NULL DEFAULT 0,
+    story_stage TEXT DEFAULT 'STORM',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

@@ -114,9 +114,12 @@ export default class BootScene extends Phaser.Scene {
     graphics.strokeRoundedRect(0, 0, 64, 64, 8);
     graphics.generateTexture('mars_rock', 64, 64);
     graphics.clear();
+
+    this.load.image('mars_terrain', '/assets/mars_terrain.jpg');
   }
 
   create() {
-    this.scene.start('GameScene', { levelId: 'level-1' });
+    const levelId = this.registry.get('levelId') || 'level-1';
+    this.scene.start('GameScene', { levelId });
   }
 }

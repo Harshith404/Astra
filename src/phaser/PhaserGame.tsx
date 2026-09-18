@@ -31,6 +31,7 @@ export default function PhaserGame({ levelId }: PhaserGameProps) {
       };
 
       const newGame = new Phaser.Game(config);
+      newGame.registry.set('levelId', levelId);
       setGame(newGame);
 
       return () => {

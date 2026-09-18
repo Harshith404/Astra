@@ -94,12 +94,16 @@ export async function POST(req: Request) {
     }
 
     // 8. Unlock Next Mission
-    if (levelId === 'level-1' && existingProgress && !existingProgress.completed) {
-      await supabaseServer.from('player_progress').upsert({
-        player_id: playerId,
-        mission_id: 'level-2',
-        unlocked: true
-      });
+    if (existingProgress && !existingProgress.completed) {
+      const currentLevelNum = parseInt(levelId.replace('level-', ''), 10);
+      if (currentLevelNum >= 1 && currentLevelNum < 7) {
+        const nextLevelId = `level-${currentLevelNum + 1}`;
+        await supabaseServer.from('player_progress').upsert({
+          player_id: playerId,
+          mission_id: nextLevelId,
+          unlocked: true
+        });
+      }
     }
 
     return NextResponse.json({ 

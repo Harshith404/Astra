@@ -19,7 +19,7 @@ export default function GamePage({ params }: { params: { levelId: string } }) {
       </div>
 
       {/* DOM Overlay HUD */}
-      <GameHUD />
+      <GameHUD levelId={params.levelId} />
     </main>
   );
 }
