@@ -2,12 +2,14 @@
 
 import dynamic from 'next/dynamic';
 import GameHUD from '../../../ui/hud/GameHUD';
+import { use } from 'react';
 
 // We must dynamically import the Phaser game wrapper with SSR disabled
 // because Phaser relies heavily on window/document browser APIs.
 const PhaserGame = dynamic(() => import('../../../phaser/PhaserGame'), { ssr: false });
 
-export default function GamePage({ params }: { params: { levelId: string } }) {
+export default function GamePage({ params }: { params: Promise<{ levelId: string }> }) {
+  const { levelId } = use(params);
   return (
     <main className="relative w-screen h-screen bg-mars-950 overflow-hidden">
       {/* Background ambient gradient */}
@@ -15,11 +17,11 @@ export default function GamePage({ params }: { params: { levelId: string } }) {
       
       {/* Phaser Canvas Container */}
       <div className="absolute inset-0 z-0">
-        <PhaserGame levelId={params.levelId} />
+        <PhaserGame levelId={levelId} />
       </div>
 
       {/* DOM Overlay HUD */}
-      <GameHUD levelId={params.levelId} />
+      <GameHUD levelId={levelId} />
     </main>
   );
 }
